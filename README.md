@@ -1,6 +1,15 @@
 # HPC Walltime Request
 
 Code for computing the optimal request time for a stochastic application when submitted on an HPC scheduler, based on historic information about previous runs.
+
+## Cite
+Ana Gainaru, Guillaume Pallez, Hongyang Sun, Padma Raghavan <br/>
+*Speculative Scheduling for Stochastic HPC Applications.* <br/>
+Proceedings of the 48th International Conference on Parallel Processing, ICPP 2019, Kyoto, Japan, August 05-08, 2019, 32:1-32:10
+
+
+## Usage
+
 Any code wanting to use this code has to include:
 - `import HPCRequest`
 
