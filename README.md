@@ -33,7 +33,7 @@ sequence = wf.compute_sequence(max_value=100)
 For large historic datasets, computing the distribution using the discrete data will give good results. Otherwise, interpolation is needed. 
 
 ![Example sequence](./docs/sequence.png)
-*Example discrete vs interpolation CDF and sequences (for 10 and 300 datasets)*
+*Example discrete vs interpolation CDF and sequences*
 
 
 ### 3. [Optional] Compute the cost of a sequence of requests for new data
