@@ -16,7 +16,7 @@ class Workload():
         self.default_interpolation = True
         
         assert (len(data) > 0), "Invalid data provided"
-        self.set_workload(data)
+        self.__set_workload(data)
         if interpolation_model is not None:
             self.__set_interpolation_model(interpolation_model)
             self.default_interpolation = False
@@ -34,7 +34,7 @@ class Workload():
         else:
             self.fit_model = interpolation_model
         self.best_fit = None
-        best_fit = self.compute_best_cdf_fit()
+        best_fit = self.__compute_best_cdf_fit()
         return best_fit
     
     # Function that returns the best fit (for debug or printing purposes)
@@ -74,7 +74,8 @@ class Workload():
         return discret_data, cdf
 
     def __compute_best_cdf_fit(self):
-        assert (len(self.fit_model)>0), "No fit models available"
+        if len(self.fit_model)==0:
+            return -1
         assert (self.discrete_data is not None), "Data not available"
 
         best_fit = self.fit_model[0].get_empty_fit()
@@ -93,16 +94,17 @@ class Workload():
         if self.best_fit is None:
             self.__compute_best_cdf_fit()
         discrete_data, self.cdf = self.fit_model[
-            self.best_fit_index].get_discrete_cdf(all_data, best_fit)
-        
-        assert(discrete_data == self.discrete_data),\
+            self.best_fit_index].get_discrete_cdf(all_data, self.best_fit)
+       
+        assert((discrete_data == self.discrete_data).all()),\
                 "Error computing the interpolation"
         return self.discrete_data, self.cdf
     
     def compute_cdf(self, data=None):
         if data is None:
             data = self.data
-        if not self.default_interpolation or len(self.data) < 100:
+        if ((self.default_interpolation and len(self.data) < 100) or
+                not self.default_interpolation and len(self.fit_model) > 0):
             self.get_interpolation_cdf(data)
         else:
             self.__compute_discrete_cdf()
