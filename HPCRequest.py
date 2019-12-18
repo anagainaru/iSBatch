@@ -13,17 +13,19 @@ class Workload():
         self.fit_model = None
         self.discrete_data = None
         self.discrete_cdf = None
+        self.default_interpolation = True
         
         assert (len(data) > 0), "Invalid data provided"
         self.set_workload(data)
         if interpolation_model is not None:
             self.__set_interpolation_model(interpolation_model)
+            self.default_interpolation = False
         elif len(data) < 100:
             self.__set_interpolation_model(DistInterpolation(data))
 
     def __set_workload(self, data):
         self.data = data
-        self.compute_discrete_cdf()
+        self.__compute_discrete_cdf()
         self.best_fit = None
 
     def __set_interpolation_model(self, interpolation_model):
@@ -38,10 +40,10 @@ class Workload():
     # Function that returns the best fit (for debug or printing purposes)
     def get_best_fit(self):
         if self.best_fit is None:
-            self.compute_best_cdf_fit()
+            self.__compute_best_cdf_fit()
         return self.best_fit
 
-    def compute_discrete_cdf(self):
+    def __compute_discrete_cdf(self):
         assert (self.data is not None),\
             'Data needs to be set to compute the discrete CDF'
 
@@ -71,7 +73,7 @@ class Workload():
         self.cdf = cdf
         return discret_data, cdf
 
-    def compute_best_cdf_fit(self):
+    def __compute_best_cdf_fit(self):
         assert (len(self.fit_model)>0), "No fit models available"
         assert (self.discrete_data is not None), "Data not available"
 
@@ -89,7 +91,7 @@ class Workload():
 
     def get_interpolation_cdf(self, all_data):
         if self.best_fit is None:
-            self.compute_best_cdf_fit()
+            self.__compute_best_cdf_fit()
         discrete_data, self.cdf = self.fit_model[
             self.best_fit_index].get_discrete_cdf(all_data, best_fit)
         
@@ -100,10 +102,10 @@ class Workload():
     def compute_cdf(self, data=None):
         if data is None:
             data = self.data
-        if self.fit_model is not None and len(self.data) < 100: 
+        if not self.default_interpolation or len(self.data) < 100:
             self.get_interpolation_cdf(data)
         else:
-            self.compute_discrete_cdf()
+            self.__compute_discrete_cdf()
         return self.discrete_data, self.cdf
 
     def compute_request_sequence(self, max_request=-1):
