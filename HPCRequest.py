@@ -217,8 +217,8 @@ class DistInterpolation(InterpolationModel):
                 st.alpha,st.beta,st.cosine,st.dgamma,st.dweibull,st.exponnorm,
                 st.exponweib,st.exponpow,st.genpareto,st.gamma,st.halfnorm,
                 st.invgauss,st.invweibull,st.laplace,st.loggamma,st.lognorm,
-                st.lomax,st.maxwell,st.norm,st.pareto,st.pearson3,st.rayleigh,
-                st.rice,st.truncexpon,st.truncnorm,st.uniform,st.weibull_min,
+                st.lomax,st.maxwell,st.norm,st.pareto,#st.pearson3,st.rice,
+                st.truncexpon,st.truncnorm,st.uniform,st.weibull_min,
                 st.weibull_max]
 
         # Best holders
