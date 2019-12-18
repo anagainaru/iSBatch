@@ -2,7 +2,7 @@
 
 Code for computing the optimal request time for a stochastic application when submitted on an HPC scheduler, based on historic information about previous runs.
 
-## Paper
+## Papers
 
 If you use the resources available here in your work, please cite our paper:
 
@@ -29,6 +29,10 @@ If you use the resources available here in your work, please cite our paper:
 } 
 ```
 
+For details about why interpolation is needed when the historic information is low read our paper:
+**Making Speculative Scheduling Robust to Incomplete Data**<br/>
+Ana Gainaru, Guillaume Pallez. 
+[SCALA@SC 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))<br/>
 
 ## Usage
 
