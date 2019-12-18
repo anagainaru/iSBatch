@@ -6,26 +6,27 @@ from scipy.optimize import curve_fit
 import sys
 
 class Workload():
-    def __init__(self, data, cost_model=None, interpolation_model=None,
+    def __init__(self, data, interpolation_model=None,
                  verbose=False):
         self.verbose = verbose
         self.best_fit = None
         self.fit_model = None
         self.discrete_data = None
         self.discrete_cdf = None
-        if len(data) > 0:
-            self.set_workload(data)
+        
+        assert (len(data) > 0), "Invalid data provided"
+        self.set_workload(data)
         if interpolation_model is not None:
-            self.set_interpolation_model(interpolation_model)
+            self.__set_interpolation_model(interpolation_model)
+        elif len(data) < 100:
+            self.__set_interpolation_model(DistInterpolation(data))
 
-    def set_workload(self, data):
+    def __set_workload(self, data):
         self.data = data
         self.compute_discrete_cdf()
-        self.lower_limit = min(data)
-        self.upper_limit = max(data)
         self.best_fit = None
 
-    def set_interpolation_model(self, interpolation_model):
+    def __set_interpolation_model(self, interpolation_model):
         if not isinstance(interpolation_model, list):
             self.fit_model = [interpolation_model]
         else:
