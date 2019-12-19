@@ -382,6 +382,7 @@ class LogDataCost(SequenceCost):
                             self.sequence[i] >= instance]
                 if len(idx_list) > 0:
                     idx = idx_list[0]
-            cost += self.sequence[idx]
+            # if the reservation is fixed the cost += self.sequence[idx]
+            cost += instance
         cost = cost / len(data)
         return cost
