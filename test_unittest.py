@@ -57,3 +57,12 @@ class TestCostModel(unittest.TestCase):
         handler = rqs.LogDataCost(sequence)
         self.assertEqual(len(handler.sequence), 2)
         self.assertEqual(handler.sequence[0], 4)
+    
+    def test_cost_without_checkpoint(self):
+        sequence = [(4, 0), (10, 0)]
+        handler = rqs.LogDataCost(sequence)
+        self.assertEqual(handler.compute_cost([3]), 3)
+        self.assertEqual(handler.compute_cost([6]), 10)
+        self.assertEqual(handler.compute_cost([12]), 26)
+
+# test the interpolation model
