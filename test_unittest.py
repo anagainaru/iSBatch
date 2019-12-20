@@ -75,4 +75,8 @@ class TestCostModel(unittest.TestCase):
         self.assertEqual(handler.compute_cost([6]), 10)
         self.assertEqual(handler.compute_cost([12]), 26)
 
-# test the interpolation model
+    def test_sequence_cost(self):
+        wl = rqs.Workload([5]*101)
+        sequence = wl.compute_request_sequence()
+        cost = wl.compute_sequence_cost(sequence, [1, 2, 3])
+        self.assertEqual(cost, 2)
