@@ -277,6 +277,10 @@ class RequestSequence():
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
 
+        self.__alpha = 1
+        self.__beta = 0 
+        self.__gamma = 0
+
     def compute_F(self, vi):
         fi = self.__prob[vi]
         if vi > 0:
