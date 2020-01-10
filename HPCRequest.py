@@ -293,6 +293,12 @@ class RequestSequence():
             sumF[k] = self.compute_F(k) + sumF[k + 1]
         return sumF
 
+    def makespan_init_value(i, j):
+        return float(self.__sumF[i] * self.discret_values[j])
+
+    def makespan_factor(i, j):
+        return 1
+
     def __compute_E_table(self, i):
         if i == len(self.discret_values):
             return (0, len(self.discret_values))
@@ -300,13 +306,12 @@ class RequestSequence():
         min_makespan = -1
         min_request = -1
         for j in range(i, len(self.discret_values)):
-            makespan = float(self.__sumF[i] * self.discret_values[j])
-            if j + 1 in self._E:
-                makespan += self._E[j + 1][0]
-            else:
+            makespan = self.makepsan_init_value(i, j)
+            ratio = self.makespan_factor(i, j)
+            if j + 1 not in self._E:
                 E_val = self.__compute_E_table(j + 1)
-                makespan += E_val[0]
                 self._E[j + 1] = E_val
+            makespan += (ratio * self._E[j + 1][0])
 
             if min_request == -1 or min_makespan > makespan:
                 min_makespan = makespan
