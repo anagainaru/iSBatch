@@ -265,21 +265,23 @@ class RequestSequence():
     ''' Sequence that optimizes the total makespan of a job for discret
     values (instead of a continuous space) '''
 
-    def __init__(self, max_value, discrete_values, probability_values):
+    def __init__(self, max_value, discrete_values, probability_values,
+                 alpha=1, beta=0, gamma=0):
+        self.__alpha = alpha
+        self.__beta = beta
+        self.__gamma = gamma
+
         self.discret_values = discrete_values
         self.__prob = probability_values
         self.upper_limit = max_value
         self._E = {}
         self._request_sequence = []
         
-        self.__sumF = self.get_discret_sum_F()
+        self.__sumF = self.get_discrete_sum_F()
+        self.__FV = self.get_discrete_FV()
         E_val = self.compute_E_value(0)
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
-
-        self.__alpha = 1
-        self.__beta = 0 
-        self.__gamma = 0
 
     def compute_F(self, vi):
         fi = self.__prob[vi]
@@ -287,17 +289,35 @@ class RequestSequence():
             fi -= self.__prob[vi-1]
         return fi / self.__prob[-1]
 
-    def get_discret_sum_F(self):
+    # Compute sumFV[i] as sum_k=i,n (f[k] * v[k])
+    def get_discrete_FV(self):
+        sumFV = (len(self.discret_values) + 1) * [0]
+        for k in range(len(self.discret_values) - 1, -1, -1):
+            sumFV[k] = (self.compute_F(k) * self.discret_values[k]) \
+                       + sumFV[k + 1]
+        return sumFV
+
+    # Compute sumF[i] as sum_k=i,n f[k]
+    def get_discrete_sum_F(self):
         sumF = (len(self.discret_values) + 1) * [0]
         for k in range(len(self.discret_values) - 1, -1, -1):
             sumF[k] = self.compute_F(k) + sumF[k + 1]
         return sumF
 
-    def makespan_init_value(i, j):
+    def makespan_init_value_old(self, i, j):
         return float(self.__sumF[i] * self.discret_values[j])
 
-    def makespan_factor(i, j):
+    def makespan_factor_old(self, i, j):
         return 1
+
+    def makespan_init_value(self, i, j):
+        init = self.__alpha * self.discret_values[j] + self.__gamma
+        init += self.__beta * (self.__FV[i] - self.__FV[j + 1])
+        init += self.__sumF[j + 1] * self.__beta * self.discret_values[j]
+        return init
+
+    def makespan_factor(self, i, j):
+        return self.__sumF[j + 1]
 
     def __compute_E_table(self, i):
         if i == len(self.discret_values):
@@ -306,7 +326,7 @@ class RequestSequence():
         min_makespan = -1
         min_request = -1
         for j in range(i, len(self.discret_values)):
-            makespan = self.makepsan_init_value(i, j)
+            makespan = self.makespan_init_value(i, j)
             ratio = self.makespan_factor(i, j)
             if j + 1 not in self._E:
                 E_val = self.__compute_E_table(j + 1)
