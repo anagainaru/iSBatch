@@ -304,38 +304,34 @@ class RequestSequence():
         init += self.__beta * self.discret_values[j] * self.__sumF[j + 1]
         return init
 
-    def makespan_factor(self, i, j):
-        return self.__sumF[j + 1]
-
-    def __compute_E_table(self, i):
-        if i == len(self.discret_values):
-            return (0, len(self.discret_values))
+    def compute_E_table(self, i):
+        if i >= len(self.discret_values) - 1:
+            return (0, len(self.discret_values) - 1)
 
         min_makespan = -1
         min_request = -1
-        for j in range(i, len(self.discret_values)):
+        for j in range(i + 1, len(self.discret_values)):
             makespan = self.makespan_init_value(i, j)
-            ratio = self.makespan_factor(i, j)
-            if j + 1 not in self._E:
-                E_val = self.__compute_E_table(j + 1)
-                self._E[j + 1] = E_val
-            makespan += (ratio * self._E[j + 1][0])
+            if j not in self._E:
+                E_val = self.compute_E_table(j)
+                self._E[j] = E_val
+            makespan += self._E[j][0]
 
-            if min_request == -1 or min_makespan > makespan:
+            if min_makespan == -1 or min_makespan > makespan:
                 min_makespan = makespan
                 min_request = j
         return (min_makespan, min_request)
 
-    def __compute_E_table_iter(self, first):
+    def compute_E_table_iter(self, first):
         self._E[len(self.discret_values)] = (0, len(self.discret_values))
         for i in range(len(self.discret_values) - 1, first - 1, -1):
             if i in self._E:
                 continue
             min_makespan = 0
-            min_request = len(self.discret_values)
-            for j in range(i, len(self.discret_values)):
-                makespan = float(self.__sumF[i] * self.discret_values[j])
-                makespan += self._E[j + 1][0]
+            min_request = len(self.discret_values) - 1
+            for j in range(i + 1, len(self.discret_values)):
+                makespan = self.makespan_init_value(i, j)
+                makespan += self._E[j][0]
 
                 if min_makespan == 0 or min_makespan >= makespan:
                     min_makespan = makespan
@@ -348,11 +344,12 @@ class RequestSequence():
             return self._request_sequence
         j = 0
         E_val = self.compute_E_value(j)
-        while E_val[1] < len(self.discret_values):
+        while E_val[1] < len(self.discret_values) - 1:
             self._request_sequence.append((self.discret_values[E_val[1]], ))
             j = E_val[1] + 1
             E_val = self.compute_E_value(j)
 
+        self._request_sequence.append((self.discret_values[E_val[1]], ))
         if self._request_sequence[-1][0] != self.upper_limit:
             self._request_sequence.append((self.upper_limit, ))
         
@@ -362,9 +359,9 @@ class RequestSequence():
         if i in self._E:
             return self._E[i]
         if len(self.discret_values)<600:
-            E_val = self.__compute_E_table(i)
+            E_val = self.compute_E_table(i)
         else:
-            E_val = self.__compute_E_table_iter(i)
+            E_val = self.compute_E_table_iter(i)
         self._E[i] = E_val
         return E_val
 
