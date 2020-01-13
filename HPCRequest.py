@@ -278,7 +278,6 @@ class RequestSequence():
         self._request_sequence = []
         
         self.__sumF = self.get_discrete_sum_F()
-        self.__FV = self.get_discrete_FV()
         E_val = self.compute_E_value(0)
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
@@ -288,14 +287,6 @@ class RequestSequence():
         if vi > 0:
             fi -= self.__prob[vi-1]
         return fi / self.__prob[-1]
-
-    # Compute sumFV[i] as sum_k=i,n (f[k] * v[k])
-    def get_discrete_FV(self):
-        sumFV = (len(self.discret_values) + 1) * [0]
-        for k in range(len(self.discret_values) - 1, -1, -1):
-            sumFV[k] = (self.compute_F(k) * self.discret_values[k]) \
-                       + sumFV[k + 1]
-        return sumFV
 
     # Compute sumF[i] as sum_k=i,n f[k]
     def get_discrete_sum_F(self):
@@ -307,13 +298,10 @@ class RequestSequence():
     def makespan_init_value_old(self, i, j):
         return float(self.__sumF[i] * self.discret_values[j])
 
-    def makespan_factor_old(self, i, j):
-        return 1
-
     def makespan_init_value(self, i, j):
-        init = self.__alpha * self.discret_values[j] + self.__gamma
-        init += self.__beta * (self.__FV[i] - self.__FV[j + 1])
-        init += self.__sumF[j + 1] * self.__beta * self.discret_values[j]
+        init = float(self.__alpha * self.discret_values[j] + self.__gamma) \
+               * self.__sumF[i + 1]
+        init += self.__beta * self.discret_values[j] * self.__sumF[j + 1]
         return init
 
     def makespan_factor(self, i, j):
