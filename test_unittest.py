@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import HPCRequest as rqs
-
+from scipy.stats import norm
 
 # test the sequence extraction
 class TestSequence(unittest.TestCase):
@@ -57,6 +57,21 @@ class TestSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         self.assertEqual(sequence, [(5,)])
 
+    def test_example_sequences(self):
+        history = np.loadtxt("log_example_norm.in", delimiter=' ')
+        wl = rqs.Workload(history,
+                          interpolation_model=[rqs.DistInterpolation(
+                              history, list_of_distr=[norm])])
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
+        wl = rqs.Workload(history)
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
+
+        history = np.loadtxt("log_example.in", delimiter=' ')
+        wl = rqs.Workload(history)
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(abs(sequence[0][0]/3600 - 22.4) < 0.1)
 
 # test the cost model
 class TestCostModel(unittest.TestCase):
