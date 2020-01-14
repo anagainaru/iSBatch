@@ -111,12 +111,14 @@ class Workload():
             self.__compute_discrete_cdf()
         return self.discrete_data, self.cdf
 
-    def compute_request_sequence(self, max_request=-1):
+    def compute_request_sequence(self, max_request=-1,
+                                 alpha=1, beta=0, gamma=0):
         self.compute_cdf()
         if max_request == -1:
             max_request = max(self.discrete_data)
         handler = RequestSequence(max_request, self.discrete_data,
-                                  self.cdf)
+                                  self.cdf, alpha=alpha, beta=beta,
+                                  gamma=gamma)
         return handler.compute_request_sequence()
 
     def compute_sequence_cost(self, sequence, data):
@@ -267,6 +269,8 @@ class RequestSequence():
 
     def __init__(self, max_value, discrete_values, probability_values,
                  alpha=1, beta=0, gamma=0):
+        # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
+        # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
         self.__alpha = alpha
         self.__beta = beta
         self.__gamma = gamma
