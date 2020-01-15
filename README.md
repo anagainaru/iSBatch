@@ -4,43 +4,9 @@ Code for computing the optimal request time for a stochastic application when su
 
 ![Optimal sequence](https://github.com/anagainaru/HPCWalltime/blob/master/docs/progdyn.png)
 
-
-## Papers
-For details about the theorem please consult our paper: <br/>
-**Reservation and Checkpointing Strategies for Stochastic Jobs** <br/>
-Ana Gainaru, Brice Goglin, Valentin Honoré, Guillaume Pallez, Padma
-Raghavan, Yves Robert, Hongyang Sun (Paper: [INRIA technical report](https://hal.inria.fr/hal-02328013/document))
-
-For details about why interpolation is needed when the historic information is low read our paper: <br/>
-**Making Speculative Scheduling Robust to Incomplete Data**<br/>
-Ana Gainaru, Guillaume Pallez. 
-[SCALA@SC 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))<br/>
-
-
-For details on how to adapt the sequence of requests when backfilling is being used: <br/>
-**Speculative Scheduling Techniques for Stochastic HPC Applications**. Ana Gainaru, Guillaume Pallez, Hongyang Sun, Padma Raghavan [ICPP 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))
-
-If you use the resources available here in your work, please cite our paper:
-
-```
-@INPROCEEDINGS{8948696,
-author={A. {Gainaru} and G. {Pallez}},
-booktitle={2019 IEEE/ACM 10th Workshop on Latest Advances in Scalable Algorithms for Large-Scale Systems (ScalA)},
-title={Making Speculative Scheduling Robust to Incomplete Data},
-year={2019},
-volume={},
-number={},
-pages={62-71},
-keywords={HPC scheduling;stochastic applications;perfor- mance modeling;discrete and continuous estimators},
-doi={10.1109/ScalA49573.2019.00013},
-ISSN={null},
-month={Nov},}
-```
-
-
 ## Usage
 
-Any code wanting to use this code has to include:
+To use this code for generating walltime requests, include:
 - `import HPCRequest`
 
 ### 1. Prepare the data
@@ -82,3 +48,38 @@ Compute the cost of a given sequence by creating a Cost object based on the sequ
 ```python
 cost = wf.compute_sequence_cost(sequence, new_data)
 ```
+
+## Papers
+
+
+If you use the resources available here in your work, please cite our paper:
+
+```
+@INPROCEEDINGS{8948696,
+author={A. {Gainaru} and G. {Pallez}},
+booktitle={2019 IEEE/ACM 10th Workshop on Latest Advances in Scalable Algorithms for Large-Scale Systems (ScalA)},
+title={Making Speculative Scheduling Robust to Incomplete Data},
+year={2019},
+volume={},
+number={},
+pages={62-71},
+keywords={HPC scheduling;stochastic applications;perfor- mance modeling;discrete and continuous estimators},
+doi={10.1109/ScalA49573.2019.00013},
+ISSN={null},
+month={Nov},}
+```
+
+For details about how to compute the optimal sequence of requests, please consult our paper: <br/>
+**Reservation and Checkpointing Strategies for Stochastic Jobs** <br/>
+Ana Gainaru, Brice Goglin, Valentin Honoré, Guillaume Pallez, Padma
+Raghavan, Yves Robert, Hongyang Sun (Paper: [INRIA technical report](https://hal.inria.fr/hal-02328013/document))
+
+For details about why interpolation is needed when the historic information is low read our paper: <br/>
+**Making Speculative Scheduling Robust to Incomplete Data**<br/>
+Ana Gainaru, Guillaume Pallez. 
+[SCALA@SC 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))<br/>
+
+For details on how to adapt the sequence of requests when backfilling is being used: <br/>
+**Speculative Scheduling Techniques for Stochastic HPC Applications**. Ana Gainaru, Guillaume Pallez, Hongyang Sun, Padma Raghavan [ICPP 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))
+
+
