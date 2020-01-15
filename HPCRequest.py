@@ -111,12 +111,14 @@ class Workload():
             self.__compute_discrete_cdf()
         return self.discrete_data, self.cdf
 
-    def compute_request_sequence(self, max_request=-1):
+    def compute_request_sequence(self, max_request=-1,
+                                 alpha=1, beta=0, gamma=0):
         self.compute_cdf()
         if max_request == -1:
             max_request = max(self.discrete_data)
         handler = RequestSequence(max_request, self.discrete_data,
-                                  self.cdf)
+                                  self.cdf, alpha=alpha, beta=beta,
+                                  gamma=gamma)
         return handler.compute_request_sequence()
 
     def compute_sequence_cost(self, sequence, data):
@@ -267,6 +269,8 @@ class RequestSequence():
 
     def __init__(self, max_value, discrete_values, probability_values,
                  alpha=1, beta=0, gamma=0):
+        # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
+        # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
         self.__alpha = alpha
         self.__beta = beta
         self.__gamma = gamma
@@ -304,25 +308,7 @@ class RequestSequence():
         init += self.__beta * self.discret_values[j] * self.__sumF[j + 1]
         return init
 
-    def compute_E_table(self, i):
-        if i >= len(self.discret_values) - 1:
-            return (0, len(self.discret_values) - 1)
-
-        min_makespan = -1
-        min_request = -1
-        for j in range(i + 1, len(self.discret_values)):
-            makespan = self.makespan_init_value(i, j)
-            if j not in self._E:
-                E_val = self.compute_E_table(j)
-                self._E[j] = E_val
-            makespan += self._E[j][0]
-
-            if min_makespan == -1 or min_makespan > makespan:
-                min_makespan = makespan
-                min_request = j
-        return (min_makespan, min_request)
-
-    def compute_E_table_iter(self, first):
+    def compute_E_table(self, first):
         self._E[len(self.discret_values)] = (0, len(self.discret_values))
         for i in range(len(self.discret_values) - 1, first - 1, -1):
             if i in self._E:
@@ -358,10 +344,7 @@ class RequestSequence():
     def compute_E_value(self, i):
         if i in self._E:
             return self._E[i]
-        if len(self.discret_values)<600:
-            E_val = self.compute_E_table(i)
-        else:
-            E_val = self.compute_E_table_iter(i)
+        E_val = self.compute_E_table(i)
         self._E[i] = E_val
         return E_val
 
