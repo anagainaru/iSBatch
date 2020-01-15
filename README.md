@@ -1,44 +1,42 @@
 # HPC Walltime Request
 
-Code for computing the optimal request time for a stochastic application when submitted on an HPC scheduler, based on historic information about previous runs. The theorem in the PDF below is used compute the sequence of requests: 
+Code for computing the optimal request time for a stochastic application when submitted on an HPC scheduler, based on historic information about previous runs. The following theorem is used compute the sequence of requests: 
 
-<object data="https://github.com/anagainaru/HPCWalltime/blob/master/docs/progdyn.pdf" type="application/pdf" width="700px" height="700px">
-    <embed src="https://github.com/anagainaru/HPCWalltime/blob/master/docs/progdyn.pdf">
-        <p><a href="https://github.com/anagainaru/HPCWalltime/blob/master/docs/progdyn.pdf">Download PDF</a></p>
-    </embed>
-</object>
+![Optimal sequence](https://github.com/anagainaru/HPCWalltime/blob/master/docs/progdyn.png)
+
 
 ## Papers
+For details about the theorem please consult our paper: <br/>
+**Reservation and Checkpointing Strategies for Stochastic Jobs** <br/>
+Ana Gainaru, Brice Goglin, Valentin Honoré, Guillaume Pallez, Padma
+Raghavan, Yves Robert, Hongyang Sun (Paper: [INRIA technical report](https://hal.inria.fr/hal-02328013/document))
 
-If you use the resources available here in your work, please cite our paper:
-
-*Speculative Scheduling Techniques for Stochastic HPC Applications*. Ana Gainaru, Guillaume Pallez (Aupy), Hongyang Sun, Padma Raghavan [ICPP 2019] ([Link to the technical report](https://hal.inria.fr/hal-02158598/document))
-
-```
-@inproceedings{Gainaru:2019:SSS:3337821.3337890,
- author = {Gainaru, Ana and Aupy, Guillaume Pallez and Sun, Hongyang and Raghavan, Padma},
- title = {Speculative Scheduling for Stochastic HPC Applications},
- booktitle = {Proceedings of the 48th International Conference on Parallel Processing},
- series = {ICPP 2019},
- year = {2019},
- isbn = {978-1-4503-6295-5},
- location = {Kyoto, Japan},
- pages = {32:1--32:10},
- articleno = {32},
- numpages = {10},
- url = {http://doi.acm.org/10.1145/3337821.3337890},
- doi = {10.1145/3337821.3337890},
- acmid = {3337890},
- publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {HPC runtime, Scheduling algorithm, stochastic applications},
-} 
-```
-
-For details about why interpolation is needed when the historic information is low read our paper:
+For details about why interpolation is needed when the historic information is low read our paper: <br/>
 **Making Speculative Scheduling Robust to Incomplete Data**<br/>
 Ana Gainaru, Guillaume Pallez. 
 [SCALA@SC 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))<br/>
+
+
+For details on how to adapt the sequence of requests when backfilling is being used: <br/>
+**Speculative Scheduling Techniques for Stochastic HPC Applications**. Ana Gainaru, Guillaume Pallez, Hongyang Sun, Padma Raghavan [ICPP 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))
+
+If you use the resources available here in your work, please cite our paper:
+
+```
+@INPROCEEDINGS{8948696,
+author={A. {Gainaru} and G. {Pallez}},
+booktitle={2019 IEEE/ACM 10th Workshop on Latest Advances in Scalable Algorithms for Large-Scale Systems (ScalA)},
+title={Making Speculative Scheduling Robust to Incomplete Data},
+year={2019},
+volume={},
+number={},
+pages={62-71},
+keywords={HPC scheduling;stochastic applications;perfor- mance modeling;discrete and continuous estimators},
+doi={10.1109/ScalA49573.2019.00013},
+ISSN={null},
+month={Nov},}
+```
+
 
 ## Usage
 
