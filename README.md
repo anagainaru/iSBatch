@@ -1,6 +1,12 @@
 # HPC Walltime Request
 
-Code for computing the optimal request time for a stochastic application when submitted on an HPC scheduler, based on historic information about previous runs.
+Code for computing the optimal request time for a stochastic application when submitted on an HPC scheduler, based on historic information about previous runs. The theorem in the PDF below is used compute the sequence of requests: 
+
+<object data="https://github.com/anagainaru/HPCWalltime/blob/master/docs/progdyn.pdf" type="application/pdf" width="700px" height="700px">
+    <embed src="https://github.com/anagainaru/HPCWalltime/blob/master/docs/progdyn.pdf">
+        <p><a href="https://github.com/anagainaru/HPCWalltime/blob/master/docs/progdyn.pdf">Download PDF</a></p>
+    </embed>
+</object>
 
 ## Papers
 
