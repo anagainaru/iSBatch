@@ -76,7 +76,7 @@ class TestSequence(unittest.TestCase):
 
     def test_configurations(self):
         # test the HPC model (alpha 1 beta 1 gamma 0)
-        history = np.loadtxt("log_examplestruncnorm.in", delimiter=' ')
+        history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
         wl = rqs.Workload(history)
         sequence = wl.compute_request_sequence(alpha=1, beta=1, gamma=0)
         self.assertTrue(abs(sequence[0][0] - 11.2) < 0.1)
