@@ -58,7 +58,7 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(sequence, [(5,)])
 
     def test_example_sequences(self):
-        history = np.loadtxt("log_example_norm.in", delimiter=' ')
+        history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
         wl = rqs.Workload(history,
                           interpolation_model=[rqs.DistInterpolation(
                               history, list_of_distr=[norm])])
@@ -68,7 +68,7 @@ class TestSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
 
-        history = np.loadtxt("log_example.in", delimiter=' ')
+        history = np.loadtxt("log_examples/neuroscience.in", delimiter=' ')
         wl = rqs.Workload(history)
         sequence = wl.compute_request_sequence()
         self.assertTrue(abs(sequence[0][0]/3600 - 22.4) < 0.1)
