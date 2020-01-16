@@ -130,16 +130,23 @@ class InterpolationModel():
     # define the format of the return values for the get_best_fit functions
     def get_empty_fit(self):
         return (-1, -1, np.inf)
+    
+    def discretize_data(self, data, discrete_steps):
+        step = (max(data) - min(data)) / discrete_steps
+        return np.unique(
+            [min(data) + i * step for i in range(discrete_steps)] \
+            + [max(data)])
 
 
 class FunctionInterpolation(InterpolationModel):
     # function could be any function that takes one parameter (e.g. log, sqrt)
-    def __init__(self, function, order=1):
+    def __init__(self, function, order=1, discretization=500):
         self.fct = function
         self.order = order
+        self.discrete_steps =  discretization - 1
 
     def get_discrete_cdf(self, data, best_fit):
-        all_data = np.unique(data)
+        all_data = self.discretize_data(data, self.discrete_steps)
         all_cdf = [max(0, min(1, np.polyval(best_fit, self.fct(d)))) for d in all_data]
         # make sure the cdf is always increasing
         for i in range(1,len(all_cdf)):
@@ -162,11 +169,12 @@ class FunctionInterpolation(InterpolationModel):
 
 class PolyInterpolation(InterpolationModel):
 
-    def __init__(self, max_order=10):
+    def __init__(self, max_order=10, discretization=500):
         self.max_order = max_order
+        self.discrete_steps =  discretization - 1
 
     def get_discrete_cdf(self, data, best_fit):
-        all_data = np.unique(data)
+        all_data = self.discretize_data(data, self.discrete_steps)
         all_cdf = [max(0, min(1, np.polyval(best_fit, d))) for d in all_data]
         # make sure the cdf is always increasing
         for i in range(1,len(all_cdf)):
@@ -197,15 +205,16 @@ class PolyInterpolation(InterpolationModel):
 
 
 class DistInterpolation(InterpolationModel):
-    def __init__(self, data, list_of_distr=[]):
+    def __init__(self, data, list_of_distr=[], discretization=500):
         self.distr = list_of_distr
         self.data = data
+        self.discrete_steps = discretization - 1
     
     def get_discrete_cdf(self, data, best_fit):
         arg = best_fit[1][:-2]
         loc = best_fit[1][-2]
         scale = best_fit[1][-1]
-        all_data = np.unique(data)
+        all_data = self.discretize_data(data, self.discrete_steps)
         all_cdf = [best_fit[0].cdf(d, loc=loc, scale=scale, *arg) for d in all_data]
         return all_data, all_cdf
 
