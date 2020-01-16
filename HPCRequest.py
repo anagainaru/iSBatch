@@ -49,9 +49,6 @@ class Workload():
         assert (self.data is not None),\
             'Data needs to be set to compute the discrete CDF'
 
-        if self.discrete_cdf is not None and self.discrete_data is not None:
-            return self.discrete_data, self.discrete_cdf
-
         discret_data = sorted(self.data)
         cdf = [1 for _ in self.data]
         todel = []
@@ -78,7 +75,9 @@ class Workload():
     def __compute_best_cdf_fit(self):
         if self.fit_model is None:
             return -1
-        assert (self.discrete_data is not None), "Data not available"
+        
+        # set dicrete data and cdf to the original ones
+        self.__compute_discrete_cdf()
 
         best_fit = self.fit_model[0].get_empty_fit()
         best_i = -1
@@ -95,11 +94,9 @@ class Workload():
     def get_interpolation_cdf(self, all_data):
         if self.best_fit is None:
             self.__compute_best_cdf_fit()
-        discrete_data, self.cdf = self.fit_model[
+        self.discrete_data, self.cdf = self.fit_model[
             self.best_fit_index].get_discrete_cdf(all_data, self.best_fit)
        
-        assert((discrete_data == self.discrete_data).all()),\
-                "Error computing the interpolation"
         return self.discrete_data, self.cdf
     
     def compute_cdf(self, data=None):
