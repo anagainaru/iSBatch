@@ -62,7 +62,14 @@ class TestSequence(unittest.TestCase):
         history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
         wl = rqs.Workload(history,
                           interpolation_model=[rqs.DistInterpolation(
-                              history, list_of_distr=[norm])])
+                              history, list_of_distr=[norm],
+                              discretization=len(history))])
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
+        wl = rqs.Workload(history,
+                          interpolation_model=[rqs.DistInterpolation(
+                              history, list_of_distr=[norm],
+                              discretization=100)])
         sequence = wl.compute_request_sequence()
         self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
         wl = rqs.Workload(history)
