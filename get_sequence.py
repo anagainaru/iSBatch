@@ -10,5 +10,5 @@ if __name__ == '__main__':
     file_name = sys.argv[1]
     history = np.loadtxt(file_name, delimiter=' ')
     wl = rqs.Workload(history)
-    sequence = wl.compute_request_sequence(alpha=1, beta=1, gamma=0)
+    sequence = wl.compute_request_sequence()
     print("Request sequence: %s" %(sequence))
