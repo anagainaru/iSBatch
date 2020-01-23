@@ -312,9 +312,6 @@ class RequestSequence():
             sumF[k] = self.compute_F(k) + sumF[k + 1]
         return sumF
 
-    def makespan_init_value_old(self, i, j):
-        return float(self.__sumF[i] * self.discret_values[j])
-
     def makespan_init_value(self, i, j):
         init = float(self.__alpha * self.discret_values[j] + self.__gamma) \
                * self.__sumF[i + 1]
@@ -327,13 +324,13 @@ class RequestSequence():
         for i in range(len(self.discret_values) - 1, first - 1, -1):
             if i in self._E:
                 continue
-            min_makespan = 0
+            min_makespan = -1
             min_request = len(self.discret_values) - 1
             for j in range(i + 1, len(self.discret_values)):
                 makespan = self.makespan_init_value(i, j)
                 makespan += self._E[j][0]
 
-                if min_makespan == 0 or min_makespan >= makespan:
+                if min_makespan == -1 or min_makespan >= makespan:
                     min_makespan = makespan
                     min_request = j
             self._E[i] = (min_makespan, min_request)
