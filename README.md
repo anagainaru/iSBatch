@@ -72,7 +72,8 @@ month={Nov},}
 For details about how to compute the optimal sequence of requests, please consult our paper: <br/>
 **Reservation and Checkpointing Strategies for Stochastic Jobs** <br/>
 Ana Gainaru, Brice Goglin, Valentin Honoré, Guillaume Pallez, Padma
-Raghavan, Yves Robert, Hongyang Sun (Paper: [INRIA technical report](https://hal.inria.fr/hal-02328013/document))
+Raghavan, Yves Robert, Hongyang Sun.
+[IPDPS 2020] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02328013/document))
 
 For details about why interpolation is needed when the historic information is low read our paper: <br/>
 **Making Speculative Scheduling Robust to Incomplete Data**<br/>
