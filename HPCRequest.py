@@ -274,7 +274,7 @@ class RequestSequence():
     values (instead of a continuous space) '''
 
     def __init__(self, max_value, discrete_values, probability_values,
-                 alpha=1, beta=0, gamma=0):
+                 alpha=1, beta=1, gamma=0):
         # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
         # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
         self.__alpha = alpha
