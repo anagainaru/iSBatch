@@ -282,7 +282,7 @@ class RequestSequence():
         self.__gamma = gamma
 
         self.discret_values = discrete_values
-        self.__prob = probability_values
+        self.__cdf = probability_values
         self.upper_limit = max_value
         self._E = {}
         self._request_sequence = []
@@ -294,15 +294,15 @@ class RequestSequence():
         self.__makespan = E_val[0]
 
     def compute_F(self, vi):
-        fi = self.__prob[vi]
+        fi = self.__cdf[vi]
         if vi > 0:
-            fi -= self.__prob[vi-1]
-        return fi / self.__prob[-1]
+            fi -= self.__cdf[vi-1]
+        return fi / self.__cdf[-1]
 
     def compute_FV(self):
         FV = 0
         for i in range(len(self.discret_values)):
-            FV += (self.discret_values[i] * self.compute_F[i])
+            FV += (self.discret_values[i] * self.compute_F(i))
         return FV
 
     # Compute sumF[i] as sum_k=i,n f[k]
