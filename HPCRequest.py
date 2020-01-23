@@ -274,7 +274,7 @@ class RequestSequence():
     values (instead of a continuous space) '''
 
     def __init__(self, max_value, discrete_values, probability_values,
-                 alpha=1, beta=0, gamma=0):
+                 alpha=1, beta=1, gamma=0):
         # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
         # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
         self.__alpha = alpha
@@ -282,21 +282,28 @@ class RequestSequence():
         self.__gamma = gamma
 
         self.discret_values = discrete_values
-        self.__prob = probability_values
+        self.__cdf = probability_values
         self.upper_limit = max_value
         self._E = {}
         self._request_sequence = []
         
         self.__sumF = self.get_discrete_sum_F()
+        self.__sumFV = self.compute_FV()
         E_val = self.compute_E_value(0)
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
 
     def compute_F(self, vi):
-        fi = self.__prob[vi]
+        fi = self.__cdf[vi]
         if vi > 0:
-            fi -= self.__prob[vi-1]
-        return fi / self.__prob[-1]
+            fi -= self.__cdf[vi-1]
+        return fi / self.__cdf[-1]
+
+    def compute_FV(self):
+        FV = 0
+        for i in range(len(self.discret_values)):
+            FV += (self.discret_values[i] * self.compute_F(i))
+        return FV
 
     # Compute sumF[i] as sum_k=i,n f[k]
     def get_discrete_sum_F(self):
@@ -305,9 +312,6 @@ class RequestSequence():
             sumF[k] = self.compute_F(k) + sumF[k + 1]
         return sumF
 
-    def makespan_init_value_old(self, i, j):
-        return float(self.__sumF[i] * self.discret_values[j])
-
     def makespan_init_value(self, i, j):
         init = float(self.__alpha * self.discret_values[j] + self.__gamma) \
                * self.__sumF[i + 1]
@@ -315,17 +319,18 @@ class RequestSequence():
         return init
 
     def compute_E_table(self, first):
-        self._E[len(self.discret_values)] = (0, len(self.discret_values))
+        self._E[len(self.discret_values)] = (self.__beta * self.__sumFV,
+                                             len(self.discret_values))
         for i in range(len(self.discret_values) - 1, first - 1, -1):
             if i in self._E:
                 continue
-            min_makespan = 0
+            min_makespan = -1
             min_request = len(self.discret_values) - 1
             for j in range(i + 1, len(self.discret_values)):
                 makespan = self.makespan_init_value(i, j)
                 makespan += self._E[j][0]
 
-                if min_makespan == 0 or min_makespan >= makespan:
+                if min_makespan == -1 or min_makespan >= makespan:
                     min_makespan = makespan
                     min_request = j
             self._E[i] = (min_makespan, min_request)
