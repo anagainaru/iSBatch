@@ -288,6 +288,7 @@ class RequestSequence():
         self._request_sequence = []
         
         self.__sumF = self.get_discrete_sum_F()
+        self.__sumFV = self.compute_FV()
         E_val = self.compute_E_value(0)
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
@@ -297,6 +298,12 @@ class RequestSequence():
         if vi > 0:
             fi -= self.__prob[vi-1]
         return fi / self.__prob[-1]
+
+    def compute_FV(self):
+        FV = 0
+        for i in range(len(self.discret_values)):
+            FV += (self.discret_values[i] * self.compute_F[i])
+        return FV
 
     # Compute sumF[i] as sum_k=i,n f[k]
     def get_discrete_sum_F(self):
@@ -315,7 +322,8 @@ class RequestSequence():
         return init
 
     def compute_E_table(self, first):
-        self._E[len(self.discret_values)] = (0, len(self.discret_values))
+        self._E[len(self.discret_values)] = (self.__beta * self.__sumFV,
+                                             len(self.discret_values))
         for i in range(len(self.discret_values) - 1, first - 1, -1):
             if i in self._E:
                 continue
