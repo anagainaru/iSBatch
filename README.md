@@ -4,7 +4,11 @@ Code for computing the optimal request time for a stochastic application when su
 
 ![Optimal sequence](https://github.com/anagainaru/HPCWalltime/blob/master/docs/progdyn.png)
 
-Different alpha, beta, gamma values can be chosen to model large-scale systems. We use alpha=1, beta=0, gamma=0 to model the cloud cost model ("pay for what you reserve") and alpha=1, beta>=1, gamma=0 for the HPC cost model ("pay for what you reserve - wait time in the queue - and for what you use - node hours -).
+Different alpha, beta, gamma values can be chosen to model large-scale systems. We use:
+ - **alpha=1, beta=0, gamma=0** to model the Cloud cost model (*pay for what you reserve*)
+ - **alpha=1, beta>=1, gamma=0** for the HPC cost model (*pay for what you reserve* - wait time in the queue - *plus for what you use* - node hours).
+
+The HPC model is chosen by detault.
 
 ## Usage
 
