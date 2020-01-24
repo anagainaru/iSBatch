@@ -273,7 +273,7 @@ class RequestSequence():
     ''' Sequence that optimizes the total makespan of a job for discret
     values (instead of a continuous space) '''
 
-    def __init__(self, max_value, discrete_values, probability_values,
+    def __init__(self, max_value, discrete_values, cdf_values,
                  alpha=1, beta=1, gamma=0):
         # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
         # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
@@ -281,15 +281,19 @@ class RequestSequence():
         self.__beta = beta
         self.__gamma = gamma
 
+        assert (len(discrete_values) > 0), "Invalid input"
+        assert (len(discrete_values) == len(cdf_values)), "Invalid cdf"
+        assert (max_value >= max(discrete_values)), "Invalid max value"
+        
         self.discret_values = discrete_values
-        self.__cdf = probability_values
+        self.__cdf = cdf_values
         self.upper_limit = max_value
         self._E = {}
         self._request_sequence = []
         
         self.__sumF = self.get_discrete_sum_F()
         self.__sumFV = self.compute_FV()
-        E_val = self.compute_E_value(0)
+        E_val = self.compute_E_value(-1)
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
 
@@ -319,13 +323,13 @@ class RequestSequence():
         return init
 
     def compute_E_table(self, first):
-        self._E[len(self.discret_values)] = (self.__beta * self.__sumFV,
-                                             len(self.discret_values))
+        self._E[len(self.discret_values) - 1] = (self.__beta * self.__sumFV,
+                                                 len(self.discret_values) - 1)
         for i in range(len(self.discret_values) - 1, first - 1, -1):
             if i in self._E:
                 continue
             min_makespan = -1
-            min_request = len(self.discret_values) - 1
+            min_request = -1
             for j in range(i + 1, len(self.discret_values)):
                 makespan = self.makespan_init_value(i, j)
                 makespan += self._E[j][0]
