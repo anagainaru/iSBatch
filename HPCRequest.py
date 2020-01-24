@@ -273,7 +273,7 @@ class RequestSequence():
     ''' Sequence that optimizes the total makespan of a job for discret
     values (instead of a continuous space) '''
 
-    def __init__(self, max_value, discrete_values, probability_values,
+    def __init__(self, max_value, discrete_values, cdf_values,
                  alpha=1, beta=1, gamma=0):
         # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
         # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
@@ -281,8 +281,12 @@ class RequestSequence():
         self.__beta = beta
         self.__gamma = gamma
 
+        assert (len(discrete_values) > 0), "Invalid input"
+        assert (len(discrete_values) == len(cdf_values)), "Invalid cdf"
+        assert (max_value >= max(discrete_values)), "Invalid max value"
+        
         self.discret_values = discrete_values
-        self.__cdf = probability_values
+        self.__cdf = cdf_values
         self.upper_limit = max_value
         self._E = {}
         self._request_sequence = []
