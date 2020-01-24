@@ -324,7 +324,7 @@ class RequestSequence():
 
     def compute_E_table(self, first):
         self._E[len(self.discret_values) - 1] = (self.__beta * self.__sumFV,
-                                                 len(self.discret_values))
+                                                 len(self.discret_values) - 1)
         for i in range(len(self.discret_values) - 1, first - 1, -1):
             if i in self._E:
                 continue
