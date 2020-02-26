@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-import HPCRequest as rqs
+import iSBatch as rqs
 from scipy.stats import norm
 
 # test the sequence extraction

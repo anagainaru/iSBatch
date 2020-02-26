@@ -1,4 +1,4 @@
-import HPCRequest as rqs
+import iSBatch as rqs
 import numpy as np
 import sys
 
