@@ -15,6 +15,15 @@ The HPC model is chosen by detault.
 To use this code for generating walltime requests, include:
 - `import HPCRequest`
 
+Simple examples on how to use the modules in the library are shown in the jupyter lab file and in the `generate_sequence.py` file. Running this file on an input log (like the ones provided as examples in the `log_examples` folder) will return the execution time you need to use for submission on an HPC system described by the default parameters.
+
+```bash
+user:~/iSBatch$ python get_sequence.py log_examples/neuroscience.in 
+Request sequence: [(80802.0,), (99019.0,)]
+
+```
+To create your own scripts use the following steps:
+
 ### 1. Prepare the data
 
 Create a list with historic resource usage information. If walltime is the resource under study, `data` is a list of walltimes for past runs. Create a Workload object with the historic data (and optionally the interpolation method required)
