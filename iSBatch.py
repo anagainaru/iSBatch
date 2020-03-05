@@ -14,30 +14,28 @@ class CRStrategy(IntEnum):
     AlwaysCheckpoint = 1
     AdaptiveCheckpoint = 2
 
-class Workload():
-    def __init__(self, data, interpolation_model=None,
-                 verbose=False):
+
+class ResourceEstimator():
+    ''' Class used to generate the sequence of resource requests
+        needed to be used for application submissions '''
+
+    def __init__(self, past_runs, interpolation_model=None,
+                 CR_strategy=CRStrategy.NeverCheckpoint, verbose=False):
         self.verbose = verbose
-        self.best_fit = None
         self.fit_model = None
         self.discrete_data = None
-        self.discrete_cdf = None
         self.default_interpolation = True
-        
-        assert (len(data) > 0), "Invalid data provided"
-        self.__set_workload(data)
+        self.checkpoint_strategy = CR_strategy
+
+        assert (len(past_runs) > 0), "Invalid log provided"
+        self.__set_workload(past_runs)
         if interpolation_model is not None:
             self.__set_interpolation_model(interpolation_model)
             self.default_interpolation = False
         elif len(data) < 100:
             self.__set_interpolation_model(DistInterpolation(data))
 
-    def __set_workload(self, data):
-        self.data = data
-        self.__compute_discrete_cdf()
-        self.best_fit = None
-
-    def __set_interpolation_model(self, interpolation_model):
+    def set_interpolation_model(self, interpolation_model):
         if not isinstance(interpolation_model, list):
             self.fit_model = [interpolation_model]
         else:
@@ -45,14 +43,15 @@ class Workload():
         if len(self.fit_model)==0:
             self.fit_model = None
             return -1
-        best_fit = self.__compute_best_cdf_fit()
-        return best_fit
-    
-    # Function that returns the best fit (for debug or printing purposes)
-    def get_best_fit(self):
-        if self.best_fit is None:
-            self.__compute_best_cdf_fit()
-        return self.best_fit
+        self.best_fit = None
+
+    def set_CR_strategy(self, CR_strategy):
+        self.checkpoint_strategy = CR_strategy
+
+    def __set_workload(self, past_runs):
+        self.data = past_runs
+        self.__compute_discrete_cdf()
+        self.best_fit = None
 
     def __compute_discrete_cdf(self):
         assert (self.data is not None),\
@@ -77,22 +76,27 @@ class Workload():
             cdf[i] /= cdf[-1]
 
         self.discrete_data = discret_data
-        self.discrete_cdf = cdf
         self.cdf = cdf
         return discret_data, cdf
 
-    def __compute_best_cdf_fit(self):
+    # Function that returns the best fit (for debug or printing purposes)
+    def get_best_fit(self):
+        if self.best_fit is None:
+            self.__compute_best_fit()
+        return self.best_fit
+
+    def __compute_best_fit(self):
         if self.fit_model is None:
             return -1
         
         # set dicrete data and cdf to the original ones
-        self.__compute_discrete_cdf()
+        ddata, dcdf = self.__compute_discrete_cdf()
 
         best_fit = self.fit_model[0].get_empty_fit()
         best_i = -1
         for i in range(len(self.fit_model)):
             fit = self.fit_model[i].get_best_fit(
-                self.discrete_data, self.discrete_cdf)
+                ddata, dcdf)
             if fit[2] < best_fit[2]:
                 best_fit = fit
                 best_i = i
@@ -100,17 +104,17 @@ class Workload():
         self.best_fit_index = best_i
         return best_i
 
+    # Function that returns the interpolation cdf
+    # (for debug or printing purposes)
     def get_interpolation_cdf(self, all_data):
         if self.best_fit is None:
-            self.__compute_best_cdf_fit()
+            self.__compute_best_fit()
         self.discrete_data, self.cdf = self.fit_model[
             self.best_fit_index].get_discrete_cdf(all_data, self.best_fit)
        
         return self.discrete_data, self.cdf
     
-    def compute_cdf(self, data=None):
-        if data is None:
-            data = self.data
+    def __compute_cdf(self):
         if self.fit_model is not None:
             self.get_interpolation_cdf(data)
         else:
@@ -119,7 +123,8 @@ class Workload():
 
     def compute_request_sequence(self, max_request=-1,
                                  alpha=1, beta=0, gamma=0):
-        self.compute_cdf()
+        self.__compute_best_fit()
+        self.__compute_cdf()
         if max_request == -1:
             max_request = max(self.discrete_data)
         handler = RequestSequence(max_request, self.discrete_data,
