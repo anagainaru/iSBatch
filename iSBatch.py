@@ -4,6 +4,15 @@ import scipy.integrate as integrate
 import scipy.stats as st
 from scipy.optimize import curve_fit
 import sys
+from enum import IntEnum
+
+class CRStrategy(IntEnum):
+    ''' Enumeration class to hold the types of Checkpoint/Restart
+        strategies available to the application '''
+
+    NeverCheckpoint = 0
+    AlwaysCheckpoint = 1
+    AdaptiveCheckpoint = 2
 
 class Workload():
     def __init__(self, data, interpolation_model=None,
