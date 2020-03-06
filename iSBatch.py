@@ -15,6 +15,20 @@ class CRStrategy(IntEnum):
     AdaptiveCheckpoint = 2
 
 
+class ClusterCosts():
+    ''' Class for storing the costs of running on the cluster
+        For a job of actual length t, a reservation of lenth t1
+        will cost alpha * t + beta * min(t, t1) + gamma '''
+
+    def __init__(self, reservation_cost=1, utilization_cost=1, deploy_cost=0,
+                 checkpoint_cost=1, restart_cost=1):
+        self.alpha = reservation_cost
+        self.beta = utilization_cost
+        self.gamma = deploy_cost
+        self.C = checkpoint_cost
+        self.R = restart_cost
+
+
 class ResourceEstimator():
     ''' Class used to generate the sequence of resource requests
         needed to be used for application submissions '''
@@ -138,13 +152,14 @@ class ResourceEstimator():
         self.checkpoint_strategy = CR_strategy
     
     def compute_request_sequence(self, max_request=-1,
-                                 alpha=1, beta=0, gamma=0):
+                                 cluster_cost=None):
+        if cluster_cost == None:
+            cluster_cost = ClusterCosts()
         self._compute_cdf()
         if max_request == -1:
             max_request = max(self.discrete_data)
         handler = RequestSequence(max_request, self.discrete_data,
-                                  self.cdf, alpha=alpha, beta=beta,
-                                  gamma=gamma)
+                                  self.cdf, cluster_cost)
         return handler.compute_request_sequence()
 
     def compute_sequence_cost(self, sequence, data):
@@ -303,12 +318,12 @@ class RequestSequence():
     values (instead of a continuous space) '''
 
     def __init__(self, max_value, discrete_values, cdf_values,
-                 alpha=1, beta=1, gamma=0):
+                 cluster_cost):
         # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
         # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
-        self.__alpha = alpha
-        self.__beta = beta
-        self.__gamma = gamma
+        self.__alpha = cluster_cost.alpha
+        self.__beta = cluster_cost.beta
+        self.__gamma = cluster_cost.gamma
 
         assert (len(discrete_values) > 0), "Invalid input"
         assert (len(discrete_values) == len(cdf_values)), "Invalid cdf"
