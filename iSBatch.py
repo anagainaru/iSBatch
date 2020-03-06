@@ -30,27 +30,14 @@ class ResourceEstimator():
         assert (len(past_runs) > 0), "Invalid log provided"
         self.__set_workload(past_runs)
         if interpolation_model is not None:
-            self.__set_interpolation_model(interpolation_model)
+            self.set_interpolation_model(interpolation_model)
             self.default_interpolation = False
-        elif len(data) < 100:
-            self.__set_interpolation_model(DistInterpolation(data))
+        elif len(past_runs) < 100:
+            self.set_interpolation_model(DistInterpolation(past_runs))
 
-    def set_interpolation_model(self, interpolation_model):
-        if not isinstance(interpolation_model, list):
-            self.fit_model = [interpolation_model]
-        else:
-            self.fit_model = interpolation_model
-        if len(self.fit_model)==0:
-            self.fit_model = None
-            return -1
-        self.best_fit = None
-
-    def set_CR_strategy(self, CR_strategy):
-        self.checkpoint_strategy = CR_strategy
-
+    ''' Private functions '''
     def __set_workload(self, past_runs):
         self.data = past_runs
-        self.__compute_discrete_cdf()
         self.best_fit = None
 
     def __compute_discrete_cdf(self):
@@ -79,12 +66,6 @@ class ResourceEstimator():
         self.cdf = cdf
         return discret_data, cdf
 
-    # Function that returns the best fit (for debug or printing purposes)
-    def get_best_fit(self):
-        if self.best_fit is None:
-            self.__compute_best_fit()
-        return self.best_fit
-
     def __compute_best_fit(self):
         if self.fit_model is None:
             return -1
@@ -104,27 +85,56 @@ class ResourceEstimator():
         self.best_fit_index = best_i
         return best_i
 
-    # Function that returns the interpolation cdf
-    # (for debug or printing purposes)
-    def get_interpolation_cdf(self, all_data):
+    def __get_interpolation_cdf(self, all_data):
         if self.best_fit is None:
             self.__compute_best_fit()
         self.discrete_data, self.cdf = self.fit_model[
             self.best_fit_index].get_discrete_cdf(all_data, self.best_fit)
        
         return self.discrete_data, self.cdf
-    
-    def __compute_cdf(self):
-        if self.fit_model is not None:
-            self.get_interpolation_cdf(data)
+
+    ''' Functions used for debuging or printing purposes '''
+    # Function that returns the best fit 
+    def _get_best_fit(self):
+        if self.best_fit is None:
+            self.__compute_best_fit()
+        return self.best_fit
+
+    # Function that returns the cdf
+    def _compute_cdf(self):
+        if all(elem == self.data[0] for elem in self.data):
+            self.discrete_data = [self.data[0]]
+            self.cdf = [1]
+        elif self.fit_model is not None:
+            self.__get_interpolation_cdf(self.data)
         else:
             self.__compute_discrete_cdf()
         return self.discrete_data, self.cdf
 
+    def _check_best_fit(self):
+        if self.best_fit is None:
+            self.__compute_best_fit()
+	# TODO
+	# need a way to check if the cdf returned by the fit
+	# fits the cdf of the data
+	
+    ''' Public functions '''
+    def set_interpolation_model(self, interpolation_model):
+        if not isinstance(interpolation_model, list):
+            self.fit_model = [interpolation_model]
+        else:
+            self.fit_model = interpolation_model
+        self.best_fit = None
+        if len(self.fit_model)==0:
+            self.fit_model = None
+            return -1
+
+    def set_CR_strategy(self, CR_strategy):
+        self.checkpoint_strategy = CR_strategy
+    
     def compute_request_sequence(self, max_request=-1,
                                  alpha=1, beta=0, gamma=0):
-        self.__compute_best_fit()
-        self.__compute_cdf()
+        self._compute_cdf()
         if max_request == -1:
             max_request = max(self.discrete_data)
         handler = RequestSequence(max_request, self.discrete_data,
@@ -189,7 +199,7 @@ class PolyInterpolation(InterpolationModel):
 
     def get_discrete_cdf(self, data, best_fit):
         all_data = self.discretize_data(data, self.discrete_steps)
-        all_cdf = [max(0, min(1, np.polyval(best_fit, d))) for d in all_data]
+        all_cdf = [max(0, min(1, np.polyval(best_fit[1], d))) for d in all_data]
         # make sure the cdf is always increasing
         for i in range(1,len(all_cdf)):
             if all_cdf[i] < all_cdf[i-1]:
