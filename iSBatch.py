@@ -47,7 +47,7 @@ class ResourceEstimator():
             self.set_interpolation_model(interpolation_model)
             self.default_interpolation = False
         elif len(past_runs) < 100:
-            self.set_interpolation_model(DistInterpolation(past_runs))
+            self.set_interpolation_model(DistInterpolation())
 
     ''' Private functions '''
     def __set_workload(self, past_runs):
@@ -250,9 +250,8 @@ class PolyInterpolation(InterpolationModel):
 
 
 class DistInterpolation(InterpolationModel):
-    def __init__(self, data, list_of_distr=[], discretization=500):
+    def __init__(self, list_of_distr=[], discretization=500):
         self.distr = list_of_distr
-        self.data = data
         self.discrete_steps = discretization - 1
     
     def get_discrete_cdf(self, data, best_fit):
@@ -289,7 +288,7 @@ class DistInterpolation(InterpolationModel):
                     warnings.filterwarnings('ignore')
 
                     # fit dist to data
-                    params = distribution.fit(self.data)
+                    params = distribution.fit(x)
 
                     # Separate parts of parameters
                     arg = params[:-2]
