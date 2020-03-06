@@ -155,8 +155,7 @@ class ResourceEstimator():
     def set_CR_strategy(self, CR_strategy):
         self.checkpoint_strategy = CR_strategy
     
-    def compute_request_sequence(self, max_request=-1,
-                                 cluster_cost=None):
+    def compute_request_sequence(self, cluster_cost=None):
         if cluster_cost == None:
             cluster_cost = ClusterCosts()
         self._compute_cdf()
@@ -319,7 +318,7 @@ class RequestSequence():
     ''' Sequence that optimizes the total makespan of a job for discret
     values (instead of a continuous space) '''
 
-    def __init__(self, max_value, discrete_values, cdf_values,
+    def __init__(self, discrete_values, cdf_values,
                  cluster_cost):
         # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
         # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
@@ -329,11 +328,10 @@ class RequestSequence():
 
         assert (len(discrete_values) > 0), "Invalid input"
         assert (len(discrete_values) == len(cdf_values)), "Invalid cdf"
-        assert (max_value >= max(discrete_values)), "Invalid max value"
-        
+
         self.discret_values = discrete_values
         self.__cdf = cdf_values
-        self.upper_limit = max_value
+        self.upper_limit = max(self.discret_values)
         self._E = {}
         self._request_sequence = []
         
