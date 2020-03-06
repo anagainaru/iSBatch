@@ -67,39 +67,48 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(sequence, [(5,)])
 
     def test_example_sequences(self):
-        # test the default model (alpha 1, beta 0, gamma 0)
+        # test the default model (alpha 1, beta 1, gamma 0)
         history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
         wl = rqs.ResourceEstimator(history,
                           interpolation_model=[rqs.DistInterpolation(
                               history, list_of_distr=[norm],
                               discretization=len(history))])
         sequence = wl.compute_request_sequence()
-        self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
+        self.assertTrue(abs(sequence[0][0] - 11.5) < 0.1)
         wl = rqs.ResourceEstimator(history,
                           interpolation_model=[rqs.DistInterpolation(
                               history, list_of_distr=[norm],
                               discretization=100)])
         sequence = wl.compute_request_sequence()
-        self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
+        self.assertTrue(abs(sequence[0][0] - 11.5) < 0.1)
         wl = rqs.ResourceEstimator(history)
         sequence = wl.compute_request_sequence()
-        self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
+        self.assertTrue(abs(sequence[0][0] - 11.2) < 0.1)
 
         history = np.loadtxt("log_examples/neuroscience.in", delimiter=' ')
         wl = rqs.ResourceEstimator(history)
         sequence = wl.compute_request_sequence()
-        self.assertTrue(abs(sequence[0][0]/3600 - 22.4) < 0.1)
+        self.assertTrue(abs(sequence[0][0]/3600 - 23.8) < 0.1)
 
     def test_configurations(self):
-        # test the HPC model (alpha 1 beta 1 gamma 0)
+        # test the Cloud model (alpha 1 beta 0 gamma 0)
         history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
         wl = rqs.ResourceEstimator(history)
-        sequence = wl.compute_request_sequence(alpha=1, beta=1, gamma=0)
-        self.assertTrue(abs(sequence[0][0] - 11.2) < 0.1)
+        sequence = wl.compute_request_sequence(cluster_cost=rqs.ClusterCosts(
+            reservation_cost = 1, utilization_cost=0, deploy_cost=0))
+        self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
+        wl = rqs.ResourceEstimator(history,
+                          interpolation_model=[rqs.DistInterpolation(
+                              history, list_of_distr=[norm],
+                              discretization=100)])
+        sequence = wl.compute_request_sequence(cluster_cost=rqs.ClusterCosts(
+            reservation_cost = 1, utilization_cost=0, deploy_cost=0))
+        self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
         history = np.loadtxt("log_examples/neuroscience.in", delimiter=' ')
         wl = rqs.ResourceEstimator(history)
-        sequence = wl.compute_request_sequence(alpha=1, beta=1, gamma=0)
-        self.assertTrue(abs(sequence[0][0]/3600 - 23.8) < 0.1)
+        sequence = wl.compute_request_sequence(cluster_cost=rqs.ClusterCosts(
+            reservation_cost = 1, utilization_cost=0, deploy_cost=0))
+        self.assertTrue(abs(sequence[0][0]/3600 - 22.4) < 0.1)
 
 # test the cost model
 class TestCostModel(unittest.TestCase):
