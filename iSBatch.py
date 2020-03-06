@@ -102,21 +102,26 @@ class ResourceEstimator():
 
     # Function that returns the cdf
     def _compute_cdf(self):
+        # if all runs have the same execution time
         if all(elem == self.data[0] for elem in self.data):
             self.discrete_data = [self.data[0]]
             self.cdf = [1]
-        elif self.fit_model is not None:
-            self.__get_interpolation_cdf(self.data)
-        else:
-            self.__compute_discrete_cdf()
-        return self.discrete_data, self.cdf
+            return
 
-    def _check_best_fit(self):
-        if self.best_fit is None:
-            self.__compute_best_fit()
-	# TODO
-	# need a way to check if the cdf returned by the fit
-	# fits the cdf of the data
+        if self.fit_model is not None:
+            self.__get_interpolation_cdf(self.data)
+            valid = self._check_cdf_validity(self.cdf)
+            if valid:
+                return
+        
+        self.__compute_discrete_cdf()
+
+    # Function to check if the cdf is [0,1] and strictly increasing
+    def _check_cdf_validity(self, cdf):
+        test = all(elem >= 0 and elem <= 1 for elem in cdf)
+        if not test:
+            return False
+        return all(cdf[i - 1] < cdf[i] for i in range(1, len(cdf)))
 	
     ''' Public functions '''
     def set_interpolation_model(self, interpolation_model):
