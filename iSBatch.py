@@ -107,6 +107,10 @@ class ResourceEstimator():
        
         return self.discrete_data, self.cdf
 
+    def __get_sequence_type(self):
+        # by default return request times when checkpoint is not availabe
+        return RequestSequence
+
     ''' Functions used for debuging or printing purposes '''
     # Function that returns the best fit 
     def _get_best_fit(self):
@@ -156,10 +160,8 @@ class ResourceEstimator():
         if cluster_cost == None:
             cluster_cost = ClusterCosts()
         self._compute_cdf()
-        if max_request == -1:
-            max_request = max(self.discrete_data)
-        handler = RequestSequence(max_request, self.discrete_data,
-                                  self.cdf, cluster_cost)
+        sequence_type = self.__get_sequence_type()
+        handler = sequence_type(self.discrete_data, self.cdf, cluster_cost)
         return handler.compute_request_sequence()
 
     def compute_sequence_cost(self, sequence, data):
