@@ -37,20 +37,26 @@ class TestSequence(unittest.TestCase):
     def test_discrete_fit(self):
         wl = rqs.ResourceEstimator([3, 3, 5, 7, 9 ,9],
 				   interpolation_model=[])
-        discrete_data, discrete_cdf = wl._compute_cdf()
+        wl._compute_cdf()
         cdf = [i / 6 for i in [2, 3, 4, 6]]
-        self.assertEqual(discrete_data, [3, 5, 7, 9])
-        self.assertEqual(discrete_cdf, cdf)
+        self.assertEqual(wl.discrete_data, [3, 5, 7, 9])
+        self.assertEqual(wl.cdf, cdf)
         wl = rqs.ResourceEstimator([5]*101)
-        discrete_data, cdf = wl._compute_cdf()
-        self.assertEqual(discrete_data, [5])
-        self.assertAlmostEqual(cdf[0], 1, places=1)
+        wl._compute_cdf()
+        self.assertEqual(wl.discrete_data, [5])
+        self.assertAlmostEqual(wl.cdf[0], 1, places=1)
+        wl = rqs.ResourceEstimator([5]*100 + [6]*100)
+        wl._compute_cdf()
+        self.assertAlmostEqual(wl.cdf[0], 0.5, places=1)
 
     def test_continuous_fit(self):
         wl = rqs.ResourceEstimator([5]*10)
-        discrete_data, cdf = wl._compute_cdf()
-        self.assertEqual(discrete_data, [5])
-        self.assertAlmostEqual(cdf[0], 1, places=1)
+        wl._compute_cdf()
+        self.assertEqual(wl.discrete_data, [5])
+        self.assertAlmostEqual(wl.cdf[0], 1, places=1)
+        wl = rqs.ResourceEstimator([5]*10 + [7]*10)
+        seq = wl.compute_request_sequence()
+        self.assertEqual(seq, [(7,)])
 
     def test_compute_sequence(self):
         wl = rqs.ResourceEstimator([5]*10)
