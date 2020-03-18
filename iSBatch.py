@@ -369,8 +369,6 @@ class RequestSequence():
         self._E[len(self.discret_values)] = (self.__beta * self.__sumFV,
                                              len(self.discret_values) - 1)
         for i in range(len(self.discret_values) - 1, first - 1, -1):
-            if i in self._E:
-                continue
             min_makespan = -1
             min_request = -1
             for j in range(i, len(self.discret_values)):
