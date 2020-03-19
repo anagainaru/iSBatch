@@ -315,7 +315,7 @@ class DistInterpolation(InterpolationModel):
 # Classes for computing the sequence of requests
 #-------------
 
-class DefaultSequence():
+class DefaultRequests():
     ''' Default class for generating the sequence of requests given 
     an application behavior and system properties '''
 
@@ -356,8 +356,31 @@ class DefaultSequence():
             sumF[k] = self.compute_F(k) + sumF[k + 1]
         return sumF
 
+    def compute_E_value(self, i):
+        if i in self._E:
+            return self._E[i]
+        E_val = self.compute_E_table(i)
+        self._E[i] = E_val
+        return E_val
 
-class RequestSequence(DefaultSequence):
+    def compute_request_sequence(self):
+        if len(self._request_sequence) > 0:
+            return self._request_sequence
+        j = 0
+        E_val = self.compute_E_value(j)
+        while E_val[1] < len(self.discret_values) - 1:
+            self._request_sequence.append((self.discret_values[E_val[1]], ))
+            j = E_val[1] + 1
+            E_val = self.compute_E_value(j)
+
+        self._request_sequence.append((self.discret_values[E_val[1]], ))
+        if self._request_sequence[-1][0] != self.upper_limit:
+            self._request_sequence.append((self.upper_limit, ))
+
+        return self._request_sequence
+
+
+class RequestSequence(DefaultRequests):
     ''' Sequence that optimizes the total makespan of a job for discret
     values (instead of a continuous space) '''
 
@@ -391,31 +414,21 @@ class RequestSequence(DefaultSequence):
             self._E[i] = (min_makespan, min_request)
         return self._E[first]
 
-    def compute_request_sequence(self):
-        if len(self._request_sequence) > 0:
-            return self._request_sequence
-        j = 0
-        E_val = self.compute_E_value(j)
-        while E_val[1] < len(self.discret_values) - 1:
-            self._request_sequence.append((self.discret_values[E_val[1]], ))
-            j = E_val[1] + 1
-            E_val = self.compute_E_value(j)
 
-        self._request_sequence.append((self.discret_values[E_val[1]], ))
-        if self._request_sequence[-1][0] != self.upper_limit:
-            self._request_sequence.append((self.upper_limit, ))
-        
-        return self._request_sequence
+class CheckpointSequence(DefaultRequests):
+    ''' Sequence that optimizes the total makespan of a job when the
+    application or system is capable of taking checkpoints '''
 
-    def compute_E_value(self, i):
-        if i in self._E:
-            return self._E[i]
-        E_val = self.compute_E_table(i)
-        self._E[i] = E_val
-        return E_val
+    def __init__(self, discrete_values, cdf_values,
+                 cluster_cost):
 
+        self._C = cluster_cost.C
+        self._R = cluster_cost.R
+        super().__init__(discrete_values, cdf_values, cluster_cost)
+        E_val = self.compute_E_value((0, 0))
+        self.__t1 = self.discret_values[E_val[1]]
+        self.__makespan = E_val[0]
 
-class CheckpointSequence(RequestSequence):
     def makespan_init_value(self, ic, il, j, delta, R):
         vic = self.discret_values[ic]
         if R == 0:
@@ -435,18 +448,18 @@ class CheckpointSequence(RequestSequence):
             # makespan with checkpointing the last sequence (delta = 1)
             makespan += self.makespan_init_value(ic, il, j, 1, R)
             makespan += self._E[(j, j)][0]
+            if min_makespan == -1 or min_makespan >= makespan:
+                min_makespan = makespan
+                min_request = j
+                min_delta = 1
 
-        if min_makespan == -1 or min_makespan >= makespan:
-            min_makespan = makespan
-            min_request = j
-
-        # makespan without checkpointing the last sequence (delta = 0)
-        makespan += self.makespan_init_value(ic, il, j, 0, R)
-        makespan += self._E[(ic, j)][0]
-
-        if min_makespan == -1 or min_makespan >= makespan:
-            min_makespan = makespan
-            min_request = j
+            # makespan without checkpointing the last sequence (delta = 0)
+            makespan += self.makespan_init_value(ic, il, j, 0, R)
+            makespan += self._E[(ic, j)][0]
+            if min_makespan == -1 or min_makespan >= makespan:
+                min_makespan = makespan
+                min_request = j
+                min_delta = 0
 
         self._E[(ic, il)] = (min_makespan, min_request)
 
