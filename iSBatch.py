@@ -22,6 +22,8 @@ class ClusterCosts():
 
     def __init__(self, reservation_cost=1, utilization_cost=1, deploy_cost=0,
                  checkpoint_cost=1, restart_cost=1):
+        # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
+        # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
         self.alpha = reservation_cost
         self.beta = utilization_cost
         self.gamma = deploy_cost
@@ -140,7 +142,7 @@ class ResourceEstimator():
         if not test:
             return False
         return all(cdf[i - 1] < cdf[i] for i in range(1, len(cdf)))
-	
+
     ''' Public functions '''
     def set_interpolation_model(self, interpolation_model):
         if not isinstance(interpolation_model, list):
@@ -313,9 +315,9 @@ class DistInterpolation(InterpolationModel):
 # Classes for computing the sequence of requests
 #-------------
 
-class RequestSequence():
-    ''' Sequence that optimizes the total makespan of a job for discret
-    values (instead of a continuous space) '''
+class DefaultSequence():
+    ''' Default class for generating the sequence of requests given 
+    an application behavior and system properties '''
 
     def __init__(self, discrete_values, cdf_values,
                  cluster_cost):
