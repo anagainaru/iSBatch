@@ -110,6 +110,8 @@ class ResourceEstimator():
         return self.discrete_data, self.cdf
 
     def __get_sequence_type(self):
+        if self.checkpoint_strategy == CRStrategy.AdaptiveCheckpoint:
+            return CheckpointSequence
         # by default return request times when checkpoint is not availabe
         return RequestSequence
 
