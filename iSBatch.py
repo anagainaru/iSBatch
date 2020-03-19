@@ -369,13 +369,13 @@ class DefaultRequests():
         j = 0
         E_val = self.compute_E_value(j)
         while E_val[1] < len(self.discret_values) - 1:
-            self._request_sequence.append((self.discret_values[E_val[1]], ))
+            self._request_sequence.append((self.discret_values[E_val[1]], E_val[2]))
             j = E_val[1] + 1
             E_val = self.compute_E_value(j)
 
-        self._request_sequence.append((self.discret_values[E_val[1]], ))
+        self._request_sequence.append((self.discret_values[E_val[1]], E_val[2]))
         if self._request_sequence[-1][0] != self.upper_limit:
-            self._request_sequence.append((self.upper_limit, ))
+            self._request_sequence.append((self.upper_limit, 0))
 
         return self._request_sequence
 
@@ -411,7 +411,7 @@ class RequestSequence(DefaultRequests):
                 if min_makespan == -1 or min_makespan >= makespan:
                     min_makespan = makespan
                     min_request = j
-            self._E[i] = (min_makespan, min_request)
+            self._E[i] = (min_makespan, min_request, 0)
         return self._E[first]
 
 
@@ -461,7 +461,7 @@ class CheckpointSequence(DefaultRequests):
                 min_request = j
                 min_delta = 0
 
-        self._E[(ic, il)] = (min_makespan, min_request)
+        self._E[(ic, il)] = (min_makespan, min_request, min_delta)
 
     def compute_E_table(self, first):
         for ic in range(len(self.discret_values), -1, -1):
