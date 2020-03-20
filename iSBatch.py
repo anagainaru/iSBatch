@@ -22,6 +22,8 @@ class ClusterCosts():
 
     def __init__(self, reservation_cost=1, utilization_cost=1, deploy_cost=0,
                  checkpoint_cost=1, restart_cost=1):
+        # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
+        # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
         self.alpha = reservation_cost
         self.beta = utilization_cost
         self.gamma = deploy_cost
@@ -108,6 +110,8 @@ class ResourceEstimator():
         return self.discrete_data, self.cdf
 
     def __get_sequence_type(self):
+        if self.checkpoint_strategy == CRStrategy.AdaptiveCheckpoint:
+            return CheckpointSequence
         # by default return request times when checkpoint is not availabe
         return RequestSequence
 
@@ -140,7 +144,7 @@ class ResourceEstimator():
         if not test:
             return False
         return all(cdf[i - 1] < cdf[i] for i in range(1, len(cdf)))
-	
+
     ''' Public functions '''
     def set_interpolation_model(self, interpolation_model):
         if not isinstance(interpolation_model, list):
@@ -313,38 +317,33 @@ class DistInterpolation(InterpolationModel):
 # Classes for computing the sequence of requests
 #-------------
 
-class RequestSequence():
-    ''' Sequence that optimizes the total makespan of a job for discret
-    values (instead of a continuous space) '''
+class DefaultRequests():
+    ''' Default class for generating the sequence of requests given 
+    an application behavior and system properties '''
 
     def __init__(self, discrete_values, cdf_values,
                  cluster_cost):
-        # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
-        # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
-        self.__alpha = cluster_cost.alpha
-        self.__beta = cluster_cost.beta
-        self.__gamma = cluster_cost.gamma
+        self._alpha = cluster_cost.alpha
+        self._beta = cluster_cost.beta
+        self._gamma = cluster_cost.gamma
 
         assert (len(discrete_values) > 0), "Invalid input"
         assert (len(discrete_values) == len(cdf_values)), "Invalid cdf"
 
         self.discret_values = discrete_values
-        self.__cdf = cdf_values
+        self._cdf = cdf_values
         self.upper_limit = max(self.discret_values)
         self._E = {}
         self._request_sequence = []
         
-        self.__sumF = self.get_discrete_sum_F()
-        self.__sumFV = self.compute_FV()
-        E_val = self.compute_E_value(0)
-        self.__t1 = self.discret_values[E_val[1]]
-        self.__makespan = E_val[0]
+        self._sumF = self.get_discrete_sum_F()
+        self._sumFV = self.compute_FV()
 
     def compute_F(self, vi):
-        fi = self.__cdf[vi]
+        fi = self._cdf[vi]
         if vi > 0:
-            fi -= self.__cdf[vi-1]
-        return fi / self.__cdf[-1]
+            fi -= self._cdf[vi-1]
+        return fi / self._cdf[-1]
 
     def compute_FV(self):
         FV = 0
@@ -359,14 +358,34 @@ class RequestSequence():
             sumF[k] = self.compute_F(k) + sumF[k + 1]
         return sumF
 
+    def compute_E_value(self, i):
+        if i in self._E:
+            return self._E[i]
+        E_val = self.compute_E_table(i)
+        self._E[i] = E_val
+        return E_val
+
+
+class RequestSequence(DefaultRequests):
+    ''' Sequence that optimizes the total makespan of a job for discret
+    values (instead of a continuous space) '''
+
+    def __init__(self, discrete_values, cdf_values,
+                 cluster_cost):
+
+        super().__init__(discrete_values, cdf_values, cluster_cost)
+        E_val = self.compute_E_value(0)
+        self.__t1 = self.discret_values[E_val[1]]
+        self.__makespan = E_val[0]
+
     def makespan_init_value(self, i, j):
-        init = float(self.__alpha * self.discret_values[j] + self.__gamma) \
-               * self.__sumF[i]
-        init += self.__beta * self.discret_values[j] * self.__sumF[j + 1]
+        init = float(self._alpha * self.discret_values[j] + self._gamma) \
+               * self._sumF[i]
+        init += self._beta * self.discret_values[j] * self._sumF[j + 1]
         return init
 
     def compute_E_table(self, first):
-        self._E[len(self.discret_values)] = (self.__beta * self.__sumFV,
+        self._E[len(self.discret_values)] = (self._beta * self._sumFV,
                                              len(self.discret_values) - 1)
         for i in range(len(self.discret_values) - 1, first - 1, -1):
             min_makespan = -1
@@ -378,7 +397,7 @@ class RequestSequence():
                 if min_makespan == -1 or min_makespan >= makespan:
                     min_makespan = makespan
                     min_request = j
-            self._E[i] = (min_makespan, min_request)
+            self._E[i] = (min_makespan, min_request, 0)
         return self._E[first]
 
     def compute_request_sequence(self):
@@ -387,22 +406,98 @@ class RequestSequence():
         j = 0
         E_val = self.compute_E_value(j)
         while E_val[1] < len(self.discret_values) - 1:
-            self._request_sequence.append((self.discret_values[E_val[1]], ))
+            self._request_sequence.append((self.discret_values[E_val[1]], E_val[2]))
             j = E_val[1] + 1
             E_val = self.compute_E_value(j)
 
-        self._request_sequence.append((self.discret_values[E_val[1]], ))
+        self._request_sequence.append((self.discret_values[E_val[1]], E_val[2]))
         if self._request_sequence[-1][0] != self.upper_limit:
-            self._request_sequence.append((self.upper_limit, ))
-        
+            self._request_sequence.append((self.upper_limit, 0))
+
         return self._request_sequence
 
-    def compute_E_value(self, i):
-        if i in self._E:
-            return self._E[i]
-        E_val = self.compute_E_table(i)
-        self._E[i] = E_val
-        return E_val
+
+class CheckpointSequence(DefaultRequests):
+    ''' Sequence that optimizes the total makespan of a job when the
+    application or system is capable of taking checkpoints '''
+
+    def __init__(self, discrete_values, cdf_values,
+                 cluster_cost):
+
+        self._C = cluster_cost.C
+        self._R = cluster_cost.R
+        super().__init__(discrete_values, cdf_values, cluster_cost)
+        E_val = self.compute_E_value((0, 0))
+        self.__t1 = self.discret_values[E_val[1]]
+        self.__makespan = E_val[0]
+
+    def makespan_init_value(self, ic, il, j, delta, R):
+        vic = self.discret_values[ic]
+        if R == 0:
+            vic = 0
+
+        init = (self._alpha * (R + self.discret_values[j] - vic + \
+                delta * self._C) + self._beta * R + self._gamma) \
+                * self._sumF[il + 1]
+        init += self._beta * ((1 - delta) * (self.discret_values[j] - vic) \
+                              + delta * self._C) * self._sumF[j + 1]
+        return init
+
+    def compute_E(self, ic, il, R):
+        min_makespan = -1
+        min_request = -1
+        for j in range(il, len(self.discret_values) - 1):
+            # makespan with checkpointing the last sequence (delta = 1)
+            makespan = self.makespan_init_value(ic, il, j, 1, R)
+            makespan += self._E[(j + 1, j + 1)][0]
+            if min_makespan == -1 or min_makespan >= makespan:
+                min_makespan = makespan
+                min_request = j
+                min_delta = 1
+
+            # makespan without checkpointing the last sequence (delta = 0)
+            makespan = self.makespan_init_value(ic, il, j, 0, R)
+            makespan += self._E[(ic, j + 1)][0]
+            if min_makespan == -1 or min_makespan >= makespan:
+                min_makespan = makespan
+                min_request = j
+                min_delta = 0
+
+        self._E[(ic, il)] = (min_makespan, min_request, min_delta)
+
+    def compute_E_table(self, first):
+        for ic in range(len(self.discret_values) - 1, -1, -1):
+            self._E[(ic, len(self.discret_values) - 1)] = (
+                self._beta * self._sumFV, len(self.discret_values) - 1, 0)
+
+        for il in range(len(self.discret_values) - 2, -1, -1):
+            for ic in range(len(self.discret_values) - 1, 0, -1):
+                if (ic, il) in self._E:
+                    continue
+                self.compute_E(ic, il, self._R)
+            self.compute_E(0, il, 0)
+
+        return self._E[first]
+
+    def compute_request_sequence(self):
+        if len(self._request_sequence) > 0:
+            return self._request_sequence
+        ic = 0
+        il = 0
+        E_val = self.compute_E_value((ic, il))
+        already_compute = 0
+        while E_val[1] < len(self.discret_values) - 1:
+            self._request_sequence.append(
+                (self.discret_values[E_val[1]] - already_compute, E_val[2]))
+            ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
+            il = E_val[1] + 1
+            if E_val[2] == 1:
+                already_compute = self.discret_values[E_val[1]]
+            E_val = self.compute_E_value((ic, il))
+
+        self._request_sequence.append(
+            (self.discret_values[E_val[1]] - already_compute, E_val[2]))
+        return self._request_sequence
 
 #-------------
 # Classes for defining how the cost is computed
