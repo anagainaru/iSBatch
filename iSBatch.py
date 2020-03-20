@@ -365,22 +365,6 @@ class DefaultRequests():
         self._E[i] = E_val
         return E_val
 
-    def compute_request_sequence(self):
-        if len(self._request_sequence) > 0:
-            return self._request_sequence
-        j = 0
-        E_val = self.compute_E_value(j)
-        while E_val[1] < len(self.discret_values) - 1:
-            self._request_sequence.append((self.discret_values[E_val[1]], E_val[2]))
-            j = E_val[1] + 1
-            E_val = self.compute_E_value(j)
-
-        self._request_sequence.append((self.discret_values[E_val[1]], E_val[2]))
-        if self._request_sequence[-1][0] != self.upper_limit:
-            self._request_sequence.append((self.upper_limit, 0))
-
-        return self._request_sequence
-
 
 class RequestSequence(DefaultRequests):
     ''' Sequence that optimizes the total makespan of a job for discret
@@ -415,6 +399,22 @@ class RequestSequence(DefaultRequests):
                     min_request = j
             self._E[i] = (min_makespan, min_request, 0)
         return self._E[first]
+
+    def compute_request_sequence(self):
+        if len(self._request_sequence) > 0:
+            return self._request_sequence
+        j = 0
+        E_val = self.compute_E_value(j)
+        while E_val[1] < len(self.discret_values) - 1:
+            self._request_sequence.append((self.discret_values[E_val[1]], E_val[2]))
+            j = E_val[1] + 1
+            E_val = self.compute_E_value(j)
+
+        self._request_sequence.append((self.discret_values[E_val[1]], E_val[2]))
+        if self._request_sequence[-1][0] != self.upper_limit:
+            self._request_sequence.append((self.upper_limit, 0))
+
+        return self._request_sequence
 
 
 class CheckpointSequence(DefaultRequests):
@@ -476,6 +476,26 @@ class CheckpointSequence(DefaultRequests):
             self.compute_E(0, il, 0)
 
         return self._E[first]
+
+    def compute_request_sequence(self):
+        if len(self._request_sequence) > 0:
+            return self._request_sequence
+        ic = 0
+        il = 0
+        E_val = self.compute_E_value((ic, il))
+        already_compute = 0
+        while E_val[1] < len(self.discret_values) - 1:
+            self._request_sequence.append(
+                (self.discret_values[E_val[1]] - already_compute, E_val[2]))
+            ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
+            il = E_val[1] + 1
+            if E_val[2] == 1:
+                already_compute = self.discret_values[E_val[1]]
+            E_val = self.compute_E_value((ic, il))
+
+        self._request_sequence.append(
+            (self.discret_values[E_val[1]] - already_compute, E_val[2]))
+        return self._request_sequence
 
 #-------------
 # Classes for defining how the cost is computed
