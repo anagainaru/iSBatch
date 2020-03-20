@@ -438,7 +438,7 @@ class CheckpointSequence(DefaultRequests):
 
         init = (self._alpha * (R + self.discret_values[j] - vic + \
                 delta * self._C) + self._beta * R + self._gamma) \
-                * self.__sumF[il + 1]
+                * self._sumF[il + 1]
         init += self._beta * ((1 - delta) * (self.discret_values[j] - vic) \
                               + delta * self._C) * self._sumF[j + 1]
         return init
@@ -446,18 +446,18 @@ class CheckpointSequence(DefaultRequests):
     def compute_E(self, ic, il, R):
         min_makespan = -1
         min_request = -1
-        for j in range(il + 1, len(self.discret_values) + 1):
+        for j in range(il, len(self.discret_values) - 1):
             # makespan with checkpointing the last sequence (delta = 1)
-            makespan += self.makespan_init_value(ic, il, j, 1, R)
-            makespan += self._E[(j, j)][0]
+            makespan = self.makespan_init_value(ic, il, j, 1, R)
+            makespan += self._E[(j + 1, j + 1)][0]
             if min_makespan == -1 or min_makespan >= makespan:
                 min_makespan = makespan
                 min_request = j
                 min_delta = 1
 
             # makespan without checkpointing the last sequence (delta = 0)
-            makespan += self.makespan_init_value(ic, il, j, 0, R)
-            makespan += self._E[(ic, j)][0]
+            makespan = self.makespan_init_value(ic, il, j, 0, R)
+            makespan += self._E[(ic, j + 1)][0]
             if min_makespan == -1 or min_makespan >= makespan:
                 min_makespan = makespan
                 min_request = j
@@ -466,12 +466,14 @@ class CheckpointSequence(DefaultRequests):
         self._E[(ic, il)] = (min_makespan, min_request, min_delta)
 
     def compute_E_table(self, first):
-        for ic in range(len(self.discret_values), -1, -1):
-            self._E[(ic, len(self.discret_values))] = (
-                self._beta * self._sumFV, len(self.discret_values) - 1)
+        for ic in range(len(self.discret_values) - 1, -1, -1):
+            self._E[(ic, len(self.discret_values) - 1)] = (
+                self._beta * self._sumFV, len(self.discret_values) - 1, 0)
 
-        for il in range(len(self.discret_values) - 1, -1, -1):
-            for ic in range(len(self.discret_values), 0, -1):
+        for il in range(len(self.discret_values) - 2, -1, -1):
+            for ic in range(len(self.discret_values) - 1, 0, -1):
+                if (ic, il) in self._E:
+                    continue
                 self.compute_E(ic, il, self._R)
             self.compute_E(0, il, 0)
 
