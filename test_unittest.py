@@ -66,6 +66,16 @@ class TestSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         self.assertEqual(sequence, [(5, 0)])
 
+    def test_example_sequence_checkpoint(self):
+        history = np.loadtxt("log_examples/small.in", delimiter=' ')
+        wl = rqs.ResourceEstimator(
+                history, CR_strategy=rqs.CRStrategy.AdaptiveCheckpoint,
+                interpolation_model=[])
+        sequence = wl.compute_request_sequence()
+        self.assertEqual(len(sequence), 3)
+        self.assertEqual(sequence[0][1], 1)
+        self.assertTrue(np.sum([i[0] for i in sequence]) >= max(history))
+
     def test_example_sequences(self):
         # test the default model (alpha 1, beta 1, gamma 0)
         history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
