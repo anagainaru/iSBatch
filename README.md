@@ -2,7 +2,19 @@
 
 # iSBatch (Batch Scheduler Interface)
 
-Code for computing the optimal request time for a stochastic application when submitted on an HPC scheduler, based on historic information about previous runs. The following theorem is used to compute the sequence of requests: 
+iSBatch is a python package that generates resource requests for an application that can be used when submitting on an HPC cluster. *Currently node hours is the only supported resource.*
+
+iSBatch requires past execution times for an application (it is recommanded to have at least 10 runs) as well as informaion on the HPC cluster and generates a sequence of requests to be used when submitting on the cluster (if the first request is an under-estimation of the real execution time, the second request should be used and so on)
+
+**Table of contents**
+- [Brief theory behing the generated requests](#theory)
+- [Usage](#usage)
+- [Papers describing internal algorithms](#papers)
+- [Code documentation](./docs/README.md)
+
+## Theory
+
+iSBach is computing the optimal request time for a stochastic application based on historic information about previous runs. The following theorem is used to compute the sequence of requests: 
 
 ![Optimal sequence](https://github.com/anagainaru/HPCWalltime/blob/master/docs/progdyn.png)
 
