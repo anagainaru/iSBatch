@@ -1,3 +1,5 @@
+<img src="./docs/logo.png" align="right" alt="Logo" width="250"/>
+
 # iSBatch (Batch Scheduler Interface)
 
 Code for computing the optimal request time for a stochastic application when submitted on an HPC scheduler, based on historic information about previous runs. The following theorem is used to compute the sequence of requests: 
