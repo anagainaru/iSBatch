@@ -1,3 +1,5 @@
+<img src="./logo.png" align="right" alt="Logo" width="250"/>
+
 # Documentation
 
 ![API](https://raw.githubusercontent.com/anagainaru/iSBatch/master/docs/api.png)
