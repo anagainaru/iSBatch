@@ -2,12 +2,12 @@
 
 # iSBatch (Batch Scheduler Interface)
 
-iSBatch is a python package that generates resource requests for an application that can be used when submitting on an HPC cluster. *Currently node hours is the only supported resource.*
+iSBatch is a python package that generates resource requests for an application to be used when submitting it on an HPC cluster. *Currently node hours is the only supported resource.*
 
-iSBatch requires past execution times for an application (it is recommanded to have at least 10 runs) as well as informaion on the HPC cluster and generates a sequence of requests to be used when submitting on the cluster (if the first request is an under-estimation of the real execution time, the second request should be used and so on)
+iSBatch requires past execution times for an application (it is recommanded to have at least 10 runs) as well as basic informaion on the HPC cluster and generates a sequence of requests to be used when submitting on the cluster (if the first request is an under-estimation of the real execution time, the second request should be used and so on)
 
 **Table of contents**
-- [Brief theory behing the generated requests](#theory)
+- [Brief theory behind the generated requests](#theory)
 - [Usage](#usage)
 - [Papers describing internal algorithms](#papers)
 - [Code documentation](./docs/README.md)
@@ -110,6 +110,7 @@ Ana Gainaru, Guillaume Pallez.
 [SCALA@SC 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))<br/>
 
 For details on how to adapt the sequence of requests when backfilling is being used: <br/>
-**Speculative Scheduling Techniques for Stochastic HPC Applications**. Ana Gainaru, Guillaume Pallez, Hongyang Sun, Padma Raghavan [ICPP 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))
+**Speculative Scheduling Techniques for Stochastic HPC Applications**<br/>
+Ana Gainaru, Guillaume Pallez, Hongyang Sun, Padma Raghavan [ICPP 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))
 
 
