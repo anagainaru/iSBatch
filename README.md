@@ -27,7 +27,7 @@ The HPC model is chosen by detault.
 ## Usage
 
 To use this code for generating walltime requests, include:
-- `import HPCRequest`
+- `import iSBatch`
 
 Simple examples on how to use the modules in the library are shown in the jupyter lab file and in the `generate_sequence.py` file. Running this file on an input log (like the ones provided as examples in the `log_examples` folder) will return the execution time you need to use for submission on an HPC system described by the default parameters.
 
@@ -40,12 +40,16 @@ To create your own scripts use the following steps:
 
 ### 1. Prepare the data
 
-Create a list with historic resource usage information. If walltime is the resource under study, `data` is a list of walltimes for past runs. Create a Workload object with the historic data (and optionally the interpolation method required)
+Create a list with historical resource usage information (this list can contain values in any time unit you want the requests to be; note that isBatch does not work with fractions of time unit). 
+
+For our example, `history` will be a list of walltimes for past runs. Create a ResourceEstimator object with the historical data (and optionally the interpolation method to be used or the checkpointing strategy)
 
 ```python
-wf = HPCRequest.Workload(data)
+wf = iSBatch.ResourceEstimator(history)
 
-wf_inter = HPCRequest.Workload(data, interpolation_model=HPCRequest.DistInterpolation)
+wf = iSBatch.ResourceEstimator(history,
+                               interpolation_model=iSBatch.DistInterpolation,
+                               CR_strategy=iSBatch.CRStrategy.AdaptiveCheckpoint)
 ```
 
 If you wish to print the CDF of this data, the discrete data (e.g. unique walltimes) and the associated CDF values for each data can be extracted using the compute_cdf function:
