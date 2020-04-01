@@ -52,10 +52,10 @@ wf = iSBatch.ResourceEstimator(history,
                                CR_strategy=iSBatch.CRStrategy.AdaptiveCheckpoint)
 ```
 
-If you wish to print the CDF of this data, the discrete data (e.g. unique walltimes) and the associated CDF values for each data can be extracted using the compute_cdf function:
+If you wish to print the CDF of this data, the discrete data (e.g. unique walltimes) and the associated CDF values for each data can be extracted using the `_get_cdf()` function:
 
 ```python3
-optimal_data, optimal_cdf = wf.compute_cdf()
+optimal_data, optimal_cdf = wf._get_cdf()
 ```
 
 ![Example CDF](./docs/discrete_cdf.png)
@@ -63,20 +63,21 @@ optimal_data, optimal_cdf = wf.compute_cdf()
 
 ### 2. Compute the sequence of requests
 
-The `compute_sequence` function returns the recommended sequence of requests given a historic data. Optionally, the function takes the upper limit expected for the execution time of the application (if nothing is provided, the max(data) will be used as upper limit)
+The `compute_request_sequence` function returns the recommended sequence of requests given a historical data. Optionally, the function takes the cost model for the cluster (if none is provided the default HPC model is chosen). For more information about cost models, please inspect the documentation [here](./docs/README.md)
 
 ```python
-sequence = wf.compute_sequence(max_value=100)
+sequence = wf.compute_request_sequence()
 ```
 For large historic datasets, computing the distribution using the discrete data will give good results. Otherwise, interpolation is needed. 
 
 ![Example sequence](./docs/sequence.png)
 *Example discrete vs interpolation CDF and sequences*
 
+A larger discussion about interpreting the CDF figures can be found in the documentation [here](./docs/README.md)
 
 ### 3. [Optional] Compute the cost of a sequence of requests for new data
 
-Compute the cost of a given sequence by creating a Cost object based on the sequence and runing it on the new data. The cost represents the average time used by each submission for all reservations. This time represents all the failed reservation together with the sucessful one. For example, for two submissions one of 10 and another of 15 hours, the cost of the sequence [8, 11, 16] is the average between `8 + 10` (the first submission will fail when requesting 8hs and will succeed the second time) and `8 + 11 + 15`.
+Compute the cost of a given sequence on new data can be computed using the `compute_sequence_cost` function. The cost represents the average response time of each submission. This time represents all the failed reservation together with the sucessful one. For example, for two submissions one of 10 and another of 15 hours, the cost of the sequence [8, 11, 16] is the average between `8 + 10` (the first submission will fail when requesting 8hs and will succeed the second time) and `8 + 11 + 15` (the second submission fails twice).
 
 ```python
 cost = wf.compute_sequence_cost(sequence, new_data)
@@ -85,7 +86,7 @@ cost = wf.compute_sequence_cost(sequence, new_data)
 ## Papers
 
 
-If you use the resources available here in your work, please cite our paper:
+If you use the resources available here in your work, please cite one of our paper:
 
 ```
 @INPROCEEDINGS{8948696,
