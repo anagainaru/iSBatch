@@ -2,6 +2,12 @@
 
 # Documentation
 
+iSBatch is a python package that generates resource requests for an application that can be used when submitting on an HPC cluster. This document presents the API and main features of the tool.
+
+## API
+
+The following image presents an overview of the classes used by the simulator (orange rectangles identify the main objects needed to start using iSBatch; dark red rectangles represent optional or internal objects).
+
 ![API](https://raw.githubusercontent.com/anagainaru/iSBatch/master/docs/api.png)
 
 The main class of the project is the **ResourceEstimator**. It takes information about the application:
