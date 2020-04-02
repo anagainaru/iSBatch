@@ -122,7 +122,7 @@ class ResourceEstimator():
             self.__compute_best_fit()
         return self.best_fit
 
-    # Function that returns the cdf
+    # Function that computes the cdf
     def _compute_cdf(self):
         # if all runs have the same execution time
         if all(elem == self.data[0] for elem in self.data):
@@ -137,6 +137,10 @@ class ResourceEstimator():
                 return
         
         self.__compute_discrete_cdf()
+
+    def _get_cdf(self):
+        self._compute_cdf()
+        return self.discrete_data, self.cdf
 
     # Function to check if the cdf is [0,1] and strictly increasing
     def _check_cdf_validity(self, cdf):
