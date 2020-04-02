@@ -86,22 +86,7 @@ cost = wf.compute_sequence_cost(sequence, new_data)
 ## Papers
 
 
-If you use the resources available here in your work, please cite one of our paper:
-
-```
-@INPROCEEDINGS{8948696,
-author={A. {Gainaru} and G. {Pallez}},
-booktitle={2019 IEEE/ACM 10th Workshop on Latest Advances in Scalable Algorithms for Large-Scale Systems (ScalA)},
-title={Making Speculative Scheduling Robust to Incomplete Data},
-year={2019},
-volume={},
-number={},
-pages={62-71},
-keywords={HPC scheduling;stochastic applications;perfor- mance modeling;discrete and continuous estimators},
-doi={10.1109/ScalA49573.2019.00013},
-ISSN={null},
-month={Nov},}
-```
+If you use the resources available here in your work, please cite one of our papers:
 
 For details about how to compute the optimal sequence of requests, please consult our paper: <br/>
 **Reservation and Checkpointing Strategies for Stochastic Jobs** <br/>
@@ -113,6 +98,7 @@ For details about why interpolation is needed when the historic information is l
 **Making Speculative Scheduling Robust to Incomplete Data**<br/>
 Ana Gainaru, Guillaume Pallez. 
 [SCALA@SC 2019] (Paper: [INRIA technical report](https://hal.inria.fr/hal-02158598/document))<br/>
+
 
 For details on how to adapt the sequence of requests when backfilling is being used: <br/>
 **Speculative Scheduling Techniques for Stochastic HPC Applications**<br/>
