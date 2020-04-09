@@ -158,3 +158,19 @@ class TestCostModel(unittest.TestCase):
         cost = wl.compute_sequence_cost(sequence, [1, 2, 3],
                                         cluster_cost=cost)
         self.assertEqual(cost, 2)
+
+    def test_cost_validity(self):
+        data = np.loadtxt("./log_examples/truncnorm.in", delimiter=' ')
+        # compute the requests based on the entire data
+        wl = rqs.ResourceEstimator(data)
+        sequence = wl.compute_request_sequence()
+        cost_opt = wl.compute_sequence_cost(sequence, data)
+        # compute requests based on part of the data
+        wl = rqs.ResourceEstimator(list(data[:10]) + [max(data)])
+        sequence = wl.compute_request_sequence()
+        cost = wl.compute_sequence_cost(sequence, data)
+        self.assertTrue(cost >= cost_opt)
+        wl = rqs.ResourceEstimator(list(data[:100]) + [max(data)])
+        sequence = wl.compute_request_sequence()
+        cost = wl.compute_sequence_cost(sequence, data)
+        self.assertTrue(cost >= cost_opt) 
