@@ -123,22 +123,54 @@ class TestSequence(unittest.TestCase):
 # test the cost model
 class TestCostModel(unittest.TestCase):
     def test_cost_with_checkpoint(self):
-        sequence = [(4,1), (10, 0)]
+        sequence = [(4, 1), (10, 0)]
         handler = rqs.LogDataCost(sequence)
-        self.assertEqual(len(handler.sequence), 2)
-        self.assertEqual(handler.sequence[0], 4)
+        cost = rqs.ClusterCosts(1, 0, 0)
+        self.assertEqual(handler.compute_cost([3], cost), 4)
+        self.assertEqual(handler.compute_cost([7], cost), 10)
+        cost = rqs.ClusterCosts(1, 1, 0)
+        self.assertEqual(handler.compute_cost([3], cost), 7)
+        self.assertEqual(handler.compute_cost([7], cost), 17)
+        cost = rqs.ClusterCosts(1, 1, 1)
+        self.assertEqual(handler.compute_cost([3], cost), 8)
+        self.assertEqual(handler.compute_cost([7], cost), 19)
 
     def test_cost_without_checkpoint(self):
         sequence = [4, 10]
         handler = rqs.LogDataCost(sequence)
-        self.assertEqual(len(handler.sequence), 2)
-        self.assertEqual(handler.sequence[0], 4)
-        self.assertEqual(handler.compute_cost([3]), 3)
-        self.assertEqual(handler.compute_cost([6]), 10)
-        self.assertEqual(handler.compute_cost([12]), 26)
+        cost = rqs.ClusterCosts(1, 0, 0)
+        self.assertEqual(handler.compute_cost([3], cost), 4)
+        self.assertEqual(handler.compute_cost([7], cost), 14)
+        cost = rqs.ClusterCosts(1, 1, 0)
+        self.assertEqual(handler.compute_cost([3], cost), 7)
+        self.assertEqual(handler.compute_cost([7], cost), 25)
+        cost = rqs.ClusterCosts(1, 1, 1)
+        self.assertEqual(handler.compute_cost([3], cost), 8)
+        self.assertEqual(handler.compute_cost([7], cost), 27)
 
     def test_sequence_cost(self):
         wl = rqs.ResourceEstimator([5]*101)
         sequence = wl.compute_request_sequence()
         cost = wl.compute_sequence_cost(sequence, [1, 2, 3])
+        self.assertEqual(cost, 7)
+        cost = rqs.ClusterCosts(0, 1, 0)
+        sequence = wl.compute_request_sequence(cluster_cost=cost)
+        cost = wl.compute_sequence_cost(sequence, [1, 2, 3],
+                                        cluster_cost=cost)
         self.assertEqual(cost, 2)
+
+    def test_cost_validity(self):
+        data = np.loadtxt("./log_examples/truncnorm.in", delimiter=' ')
+        # compute the requests based on the entire data
+        wl = rqs.ResourceEstimator(data)
+        sequence = wl.compute_request_sequence()
+        cost_opt = wl.compute_sequence_cost(sequence, data)
+        # compute requests based on part of the data
+        wl = rqs.ResourceEstimator(list(data[:10]) + [max(data)])
+        sequence = wl.compute_request_sequence()
+        cost = wl.compute_sequence_cost(sequence, data)
+        self.assertTrue(cost >= cost_opt)
+        wl = rqs.ResourceEstimator(list(data[:100]) + [max(data)])
+        sequence = wl.compute_request_sequence()
+        cost = wl.compute_sequence_cost(sequence, data)
+        self.assertTrue(cost >= cost_opt) 
