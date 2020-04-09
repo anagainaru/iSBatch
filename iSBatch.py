@@ -171,9 +171,11 @@ class ResourceEstimator():
         handler = sequence_type(self.discrete_data, self.cdf, cluster_cost)
         return handler.compute_request_sequence()
 
-    def compute_sequence_cost(self, sequence, data):
+    def compute_sequence_cost(self, sequence, data, cluster_cost=None):
+        if cluster_cost == None:
+            cluster_cost = ClusterCosts()
         handler = LogDataCost(sequence)
-        return handler.compute_cost(data)
+        return handler.compute_cost(data, cluster_cost)
 
 #-------------
 # Classes for defining how the interpolation will be done
@@ -521,12 +523,17 @@ class LogDataCost(SequenceCost):
         else:
             self.sequence = [i[0] for i in sequence]
 
-    def compute_cost(self, data):
+    def compute_cost(self, data, cluster_cost):
         cost = 0
+        # cost of reservation: alpha * t + beta min(t, reservation) + gamma
         for instance in data:
-            # get the sum of all the values in the sequences <= walltime
-            cost += sum([i for i in self.sequence if i < instance])
-            # add the first reservation that is >= current walltime
+            # add the cost of all the reservations <= walltime
+            # min(t, reservation) is always = reservation in this case
+            cost += sum([(cluster_cost.alpha + cluster_cost.beta) * i\
+                         + cluster_cost.gamma for i in self.sequence
+                         if i < instance])
+
+            # for the first reservation that is >= current walltime
             idx = 0
             if len(self.sequence) > 1:
                 idx_list = [i for i in range(1,len(self.sequence)) if
@@ -534,7 +541,10 @@ class LogDataCost(SequenceCost):
                             self.sequence[i] >= instance]
                 if len(idx_list) > 0:
                     idx = idx_list[0]
-            # if the reservation is fixed the cost += self.sequence[idx]
-            cost += instance
+
+            # min(t, reservation) is always = t
+            cost += cluster_cost.alpha * self.sequence[idx]
+            cost += cluster_cost.beta * instance
+            cost += cluster_cost.gamma
         cost = cost / len(data)
         return cost
