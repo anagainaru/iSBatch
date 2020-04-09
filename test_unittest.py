@@ -131,11 +131,15 @@ class TestCostModel(unittest.TestCase):
     def test_cost_without_checkpoint(self):
         sequence = [4, 10]
         handler = rqs.LogDataCost(sequence)
-        self.assertEqual(len(handler.sequence), 2)
-        self.assertEqual(handler.sequence[0], 4)
-        self.assertEqual(handler.compute_cost([3]), 3)
-        self.assertEqual(handler.compute_cost([6]), 10)
-        self.assertEqual(handler.compute_cost([12]), 26)
+        cost = rqs.ClusterCosts(1, 0, 0)
+        self.assertEqual(handler.compute_cost([3], cost), 4)
+        self.assertEqual(handler.compute_cost([7], cost), 14)
+        cost = rqs.ClusterCosts(1, 1, 0)
+        self.assertEqual(handler.compute_cost([3], cost), 7)
+        self.assertEqual(handler.compute_cost([7], cost), 25)
+        cost = rqs.ClusterCosts(1, 1, 1)
+        self.assertEqual(handler.compute_cost([3], cost), 8)
+        self.assertEqual(handler.compute_cost([7], cost), 27)
 
     def test_sequence_cost(self):
         wl = rqs.ResourceEstimator([5]*101)
