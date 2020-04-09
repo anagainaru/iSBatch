@@ -516,35 +516,31 @@ class SequenceCost():
 class LogDataCost(SequenceCost):
 
     def __init__(self, sequence):
-        # if entries in the sequence use a multi information format
-        # extract only the execution time
+        # Sequences need to use a multi information format
+        # if not provided assume a never checkpoint model
         if not isinstance(sequence[0], tuple):
-            self.sequence = sequence
+            self.sequence = [(i, 0) for i in sequence]
         else:
-            self.sequence = [i[0] for i in sequence]
+            self.sequence = sequence
+
+    def __compute_instance_cost(self, time, cluster_cost):
+        cost = 0
+        compute_time = 0
+        # cost of reservation: alpha * t + beta min(t, reservation) + gamma
+        for reservation in self.sequence:
+            cost += cluster_cost.alpha * (reservation[0] - compute_time)
+            cost += cluster_cost.beta * (
+                min(time, reservation[0]) - compute_time)
+            cost += cluster_cost.gamma
+            # stop when the reservation is bigger than the execution time
+            if reservation[0] >= time:
+                break
+            if reservation[1] == 1:
+                compute_time += reservation[0]
+        return cost
 
     def compute_cost(self, data, cluster_cost):
         cost = 0
-        # cost of reservation: alpha * t + beta min(t, reservation) + gamma
         for instance in data:
-            # add the cost of all the reservations <= walltime
-            # min(t, reservation) is always = reservation in this case
-            cost += sum([(cluster_cost.alpha + cluster_cost.beta) * i\
-                         + cluster_cost.gamma for i in self.sequence
-                         if i < instance])
-
-            # for the first reservation that is >= current walltime
-            idx = 0
-            if len(self.sequence) > 1:
-                idx_list = [i for i in range(1,len(self.sequence)) if
-                            self.sequence[i-1] < instance and
-                            self.sequence[i] >= instance]
-                if len(idx_list) > 0:
-                    idx = idx_list[0]
-
-            # min(t, reservation) is always = t
-            cost += cluster_cost.alpha * self.sequence[idx]
-            cost += cluster_cost.beta * instance
-            cost += cluster_cost.gamma
-        cost = cost / len(data)
-        return cost
+            cost += self.__compute_instance_cost(instance, cluster_cost)
+        return cost / len(data)
