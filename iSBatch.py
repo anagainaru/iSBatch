@@ -82,11 +82,11 @@ class ClusterCosts():
         if checkpoint_model is None:
             self.checkpoint_model = StaticCheckpoint()
 
-    def get_checkpoint_time(self):
-        return self.checkpoint_model.get_checkpoint_time()
+    def get_checkpoint_time(self, ts):
+        return self.checkpoint_model.get_checkpoint_time(ts)
 
-    def get_restart_time(self):
-        return self.checkpoint_model.get_restart_time()
+    def get_restart_time(self, ts):
+        return self.checkpoint_model.get_restart_time(ts)
 
 
 class ResourceEstimator():
@@ -488,8 +488,8 @@ class CheckpointSequence(DefaultRequests):
     def __init__(self, discrete_values, cdf_values,
                  cluster_cost):
 
-        self._C = cluster_cost.get_checkpoint_time()
-        self._R = cluster_cost.get_restart_time()
+        self._C = cluster_cost.get_checkpoint_time(0)
+        self._R = cluster_cost.get_restart_time(0)
         super().__init__(discrete_values, cdf_values, cluster_cost)
         E_val = self.compute_E_value((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
