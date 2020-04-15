@@ -6,6 +6,7 @@ from scipy.optimize import curve_fit
 import sys
 from enum import IntEnum
 
+
 class CRStrategy(IntEnum):
     ''' Enumeration class to hold the types of Checkpoint/Restart
         strategies available to the application '''
@@ -15,20 +16,47 @@ class CRStrategy(IntEnum):
     AdaptiveCheckpoint = 2
 
 
+class CRModel(IntEnum):
+    ''' Enumeration class to hold the C/R model used '''
+
+    StaticCheckpoint = 0
+    DynamicCheckpoint = 1
+
+
+class StaticCheckpoint():
+    ''' Default checkpoint model, defined by a static checkpoint/restart '''
+    def __init__(self, checkpoint_cost=1, restart_cost=1):
+        self.C = checkpoint_cost
+        self.R = restart_cost        
+
+    def get_checkpoint_time(self):
+        return self.C
+
+    def get_restart_time(self):
+        return self.R
+
+
 class ClusterCosts():
     ''' Class for storing the costs of running on the cluster
         For a job of actual length t, a reservation of lenth t1
         will cost alpha * t + beta * min(t, t1) + gamma '''
 
     def __init__(self, reservation_cost=1, utilization_cost=1, deploy_cost=0,
-                 checkpoint_cost=1, restart_cost=1):
+                 checkpoint_model=None):
         # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
         # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
         self.alpha = reservation_cost
         self.beta = utilization_cost
         self.gamma = deploy_cost
-        self.C = checkpoint_cost
-        self.R = restart_cost
+        self.checkpoint_model = checkpoint_model
+        if checkpoint_model is None:
+            self.checkpoint_model = StaticCheckpoint()
+
+    def get_checkpoint_time(self):
+        return self.checkpoint_model.get_checkpoint_time()
+
+    def get_restart_time(self):
+        return self.checkpoint_model.get_restart_time()
 
 
 class ResourceEstimator():
@@ -430,8 +458,8 @@ class CheckpointSequence(DefaultRequests):
     def __init__(self, discrete_values, cdf_values,
                  cluster_cost):
 
-        self._C = cluster_cost.C
-        self._R = cluster_cost.R
+        self._C = cluster_cost.get_checkpoint_time()
+        self._R = cluster_cost.get_restart_time()
         super().__init__(discrete_values, cdf_values, cluster_cost)
         E_val = self.compute_E_value((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
