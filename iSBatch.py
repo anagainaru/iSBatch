@@ -16,24 +16,54 @@ class CRStrategy(IntEnum):
     AdaptiveCheckpoint = 2
 
 
-class CRModel(IntEnum):
-    ''' Enumeration class to hold the C/R model used '''
-
-    StaticCheckpoint = 0
-    DynamicCheckpoint = 1
-
-
 class StaticCheckpoint():
     ''' Default checkpoint model, defined by a static checkpoint/restart '''
+    
     def __init__(self, checkpoint_cost=1, restart_cost=1):
         self.C = checkpoint_cost
         self.R = restart_cost        
 
-    def get_checkpoint_time(self):
+    def get_checkpoint_time(self, ts):
         return self.C
 
-    def get_restart_time(self):
+    def get_restart_time(self, ts):
         return self.R
+
+
+class DynamicCheckpoint():
+    ''' Dynamic checkpoint model, defined by read/write bandwidths and Csize,
+    an array (checkpoint_size, time) that defines the valability of each size.
+    Example: [(c1,0), (c2,10)] means the application checkpoint size is c1 for
+    the first 10 time units and c2 for the remaining time '''
+
+    def __init__(self, checkpoint_size, write_bandwidth=1,
+                 read_bandwidth=1):
+        self.wbw = write_bandwidth
+        self.rbw = read_bandwidth
+
+        self.size = checkpoint_size
+        # if the checkpoint size is a value create a list of one element
+        if not isinstance(checkpoint_size, list):
+            self.size = [(checkpoint_size, 0)]
+
+        # check sequence correctness
+        assert(self.size[0][1] == 0), "The C size needs to start from ts 0"
+        assert(all(self.size[i][1] < self.size[i + 1][1] for i in range(
+            len(self.size)-1))), "Incorrect ts in the checkpoint size sequence"
+
+    def __get_size(self, ts):
+        # find the last entry in the checkpoint_size list
+        # that has the timestamp < the given ts
+        C = next((i for i in reversed(self.size) if i[1] <= 6), None)
+        return C[0]
+
+    def get_checkpoint_time(self, ts):
+        size = self.__get_size(ts)
+        return self.wbw * size
+
+    def get_restart_time(self, ts):
+        size = self.__get_size(ts)
+        return self.rbw * size
 
 
 class ClusterCosts():
