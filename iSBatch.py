@@ -490,9 +490,8 @@ class CheckpointSequence(DefaultRequests):
     def __init__(self, discrete_values, cdf_values,
                  cluster_cost):
 
-        self._C = cluster_cost.get_checkpoint_time(0)
-        self._R = cluster_cost.get_restart_time(0)
         super().__init__(discrete_values, cdf_values, cluster_cost)
+        self.CR = cluster_cost.checkpoint_model
         E_val = self.compute_E_value((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
@@ -502,11 +501,12 @@ class CheckpointSequence(DefaultRequests):
         if R == 0:
             vic = 0
 
+        C = self.CR.get_checkpoint_time(0)
         init = (self._alpha * (R + self.discret_values[j] - vic + \
-                delta * self._C) + self._beta * R + self._gamma) \
+                delta * C) + self._beta * R + self._gamma) \
                 * self._sumF[il + 1]
         init += self._beta * ((1 - delta) * (self.discret_values[j] - vic) \
-                              + delta * self._C) * self._sumF[j + 1]
+                              + delta * C) * self._sumF[j + 1]
         return init
 
     def compute_E(self, ic, il, R):
@@ -540,7 +540,8 @@ class CheckpointSequence(DefaultRequests):
             for ic in range(len(self.discret_values) - 1, 0, -1):
                 if (ic, il) in self._E:
                     continue
-                self.compute_E(ic, il, self._R)
+                R = self.CR.get_restart_time(0)
+                self.compute_E(ic, il, R)
             self.compute_E(0, il, 0)
 
         return self._E[first]
@@ -591,7 +592,8 @@ class AllCheckpointSequence(CheckpointSequence):
         for i in range(len(self.discret_values) - 2, 0, -1):
             if (i, i) in self._E:
                 continue
-            self.compute_E(i, self._R)
+            R = self.CR.get_restart_time(0)
+            self.compute_E(i, R)
         self.compute_E(0, 0)
 
         return self._E[first]
