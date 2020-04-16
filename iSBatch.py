@@ -6,6 +6,7 @@ from scipy.optimize import curve_fit
 import sys
 from enum import IntEnum
 
+
 class CRStrategy(IntEnum):
     ''' Enumeration class to hold the types of Checkpoint/Restart
         strategies available to the application '''
@@ -15,20 +16,77 @@ class CRStrategy(IntEnum):
     AdaptiveCheckpoint = 2
 
 
+class StaticCheckpoint():
+    ''' Default checkpoint model, defined by a static checkpoint/restart '''
+    
+    def __init__(self, checkpoint_cost=1, restart_cost=1):
+        self.C = checkpoint_cost
+        self.R = restart_cost        
+
+    def get_checkpoint_time(self, ts):
+        return self.C
+
+    def get_restart_time(self, ts):
+        return self.R
+
+
+class DynamicCheckpoint():
+    ''' Dynamic checkpoint model, defined by read/write bandwidths and Csize,
+    an array (checkpoint_size, time) that defines the valability of each size.
+    Example: [(c1,0), (c2,10)] means the application checkpoint size is c1 for
+    the first 10 time units and c2 for the remaining time '''
+
+    def __init__(self, checkpoint_size, write_bandwidth=1,
+                 read_bandwidth=1):
+        self.wbw = write_bandwidth
+        self.rbw = read_bandwidth
+
+        self.size = checkpoint_size
+        # if the checkpoint size is a value create a list of one element
+        if not isinstance(checkpoint_size, list):
+            self.size = [(checkpoint_size, 0)]
+
+        # check sequence correctness
+        assert(self.size[0][1] == 0), "The C size needs to start from ts 0"
+        assert(all(self.size[i][1] < self.size[i + 1][1] for i in range(
+            len(self.size)-1))), "Incorrect ts in the checkpoint size sequence"
+
+    def __get_size(self, ts):
+        # find the last entry in the checkpoint_size list
+        # that has the timestamp < the given ts
+        C = next((i for i in reversed(self.size) if i[1] <= 6), None)
+        return C[0]
+
+    def get_checkpoint_time(self, ts):
+        size = self.__get_size(ts)
+        return self.wbw * size
+
+    def get_restart_time(self, ts):
+        size = self.__get_size(ts)
+        return self.rbw * size
+
+
 class ClusterCosts():
     ''' Class for storing the costs of running on the cluster
         For a job of actual length t, a reservation of lenth t1
         will cost alpha * t + beta * min(t, t1) + gamma '''
 
     def __init__(self, reservation_cost=1, utilization_cost=1, deploy_cost=0,
-                 checkpoint_cost=1, restart_cost=1):
+                 checkpoint_model=None):
         # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
         # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
         self.alpha = reservation_cost
         self.beta = utilization_cost
         self.gamma = deploy_cost
-        self.C = checkpoint_cost
-        self.R = restart_cost
+        self.checkpoint_model = checkpoint_model
+        if checkpoint_model is None:
+            self.checkpoint_model = StaticCheckpoint()
+
+    def get_checkpoint_time(self, ts):
+        return self.checkpoint_model.get_checkpoint_time(ts)
+
+    def get_restart_time(self, ts):
+        return self.checkpoint_model.get_restart_time(ts)
 
 
 class ResourceEstimator():
@@ -430,8 +488,8 @@ class CheckpointSequence(DefaultRequests):
     def __init__(self, discrete_values, cdf_values,
                  cluster_cost):
 
-        self._C = cluster_cost.C
-        self._R = cluster_cost.R
+        self._C = cluster_cost.get_checkpoint_time(0)
+        self._R = cluster_cost.get_restart_time(0)
         super().__init__(discrete_values, cdf_values, cluster_cost)
         E_val = self.compute_E_value((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
