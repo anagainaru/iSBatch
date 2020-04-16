@@ -75,6 +75,17 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(len(sequence), 3)
         self.assertEqual(sequence[0][1], 1)
         self.assertTrue(np.sum([i[0] for i in sequence]) >= max(history))
+        time_adapt = np.sum([i[0] for i in sequence if i[1]==1])
+        time_adapt += sequence[len(sequence)-1][0]
+        wl = rqs.ResourceEstimator(
+                history, CR_strategy=rqs.CRStrategy.AlwaysCheckpoint,
+                interpolation_model=[])
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(np.sum([i[0] for i in sequence]) >= max(history))
+        # check that the total execution covered is the same in both
+        time = np.sum([i[0] for i in sequence if i[1]==1])
+        time += sequence[len(sequence)-1][0]
+        self.assertTrue(time == time_adapt)
 
     def test_example_sequences(self):
         # test the default model (alpha 1, beta 1, gamma 0)
