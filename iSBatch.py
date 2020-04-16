@@ -170,6 +170,8 @@ class ResourceEstimator():
     def __get_sequence_type(self):
         if self.checkpoint_strategy == CRStrategy.AdaptiveCheckpoint:
             return CheckpointSequence
+        if self.checkpoint_strategy == CRStrategy.AlwaysCheckpoint:
+            return AllCheckpointSequence
         # by default return request times when checkpoint is not availabe
         return RequestSequence
 
@@ -562,6 +564,37 @@ class CheckpointSequence(DefaultRequests):
         self._request_sequence.append(
             (self.discret_values[E_val[1]] - already_compute, E_val[2]))
         return self._request_sequence
+
+
+class AllCheckpointSequence(CheckpointSequence):
+    ''' Sequence that optimizes the total makespan of a job when forcing
+    the application or system to take checkpoints at the end of each
+    reservation '''
+
+    def compute_E(self, i, R):
+        min_makespan = -1
+        min_request = -1
+        for j in range(i, len(self.discret_values) - 1):
+            makespan = self.makespan_init_value(i, i, j, 1, R)
+            makespan += self._E[(j + 1, j + 1)][0]
+            if min_makespan == -1 or min_makespan >= makespan:
+                min_makespan = makespan
+                min_request = j
+
+        self._E[(i, i)] = (min_makespan, min_request, 1)
+
+    def compute_E_table(self, first):
+        # the last reservation will not have to take a checkpoint
+        self._E[(len(self.discret_values) - 1, len(self.discret_values) - 1)] = (
+            self._beta * self._sumFV, len(self.discret_values) - 1, 0)
+
+        for i in range(len(self.discret_values) - 2, 0, -1):
+            if (i, i) in self._E:
+                continue
+            self.compute_E(i, self._R)
+        self.compute_E(0, 0)
+
+        return self._E[first]
 
 #-------------
 # Classes for defining how the cost is computed
