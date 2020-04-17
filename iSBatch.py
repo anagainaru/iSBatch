@@ -501,7 +501,7 @@ class CheckpointSequence(DefaultRequests):
         if R == 0:
             vic = 0
 
-        C = self.CR.get_checkpoint_time(0)
+        C = self.CR.get_checkpoint_time(self.discret_values[j])
         init = (self._alpha * (R + self.discret_values[j] - vic + \
                 delta * C) + self._beta * R + self._gamma) \
                 * self._sumF[il + 1]
@@ -540,7 +540,8 @@ class CheckpointSequence(DefaultRequests):
             for ic in range(len(self.discret_values) - 1, 0, -1):
                 if (ic, il) in self._E:
                     continue
-                R = self.CR.get_restart_time(0)
+                R = self.CR.get_restart_time(self.discret_values[il])
+                print("Step",il," ",ic,"restart for", self.discret_values[il])
                 self.compute_E(ic, il, R)
             self.compute_E(0, il, 0)
 
@@ -592,7 +593,7 @@ class AllCheckpointSequence(CheckpointSequence):
         for i in range(len(self.discret_values) - 2, 0, -1):
             if (i, i) in self._E:
                 continue
-            R = self.CR.get_restart_time(0)
+            R = self.CR.get_restart_time(self.discret_values[i])
             self.compute_E(i, R)
         self.compute_E(0, 0)
 
