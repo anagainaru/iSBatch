@@ -1,4 +1,4 @@
-<img src="./docs/logo.png" align="right" alt="Logo" width="250"/>
+<img src="https://github.com/anagainaru/iSBatch/blob/master/docs/logo.png" align="right" alt="Logo" width="250"/>
 
 # iSBatch (Batch Scheduler Interface)
 
