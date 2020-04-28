@@ -94,12 +94,14 @@ class ResourceEstimator():
         needed to be used for application submissions '''
 
     def __init__(self, past_runs, interpolation_model=None,
-                 CR_strategy=CRStrategy.NeverCheckpoint, verbose=False):
+                 CR_strategy=CRStrategy.NeverCheckpoint, verbose=False,
+                 resource_discretization=500):
         self.verbose = verbose
         self.fit_model = None
         self.discrete_data = None
         self.default_interpolation = True
         self.checkpoint_strategy = CR_strategy
+        self.discretization = resource_discretization
 
         assert (len(past_runs) > 0), "Invalid log provided"
         self.__set_workload(past_runs)
@@ -107,7 +109,8 @@ class ResourceEstimator():
             self.set_interpolation_model(interpolation_model)
             self.default_interpolation = False
         elif len(past_runs) < 100:
-            self.set_interpolation_model(DistInterpolation())
+            self.set_interpolation_model(
+                DistInterpolation(discretization=self.discretization))
 
     ''' Private functions '''
     def __set_workload(self, past_runs):
