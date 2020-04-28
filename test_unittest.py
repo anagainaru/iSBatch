@@ -3,12 +3,8 @@ import numpy as np
 import iSBatch as rqs
 from scipy.stats import norm
 
-# test the sequence extraction
-class TestSequence(unittest.TestCase):
-    def test_failed_init(self):
-        with self.assertRaises(AssertionError):
-            rqs.ResourceEstimator([])
 
+class TestEstimationParameters(unittest.TestCase):
     def test_init_default(self):
         wl = rqs.ResourceEstimator([3, 4])
         self.assertEqual(wl.default_interpolation, True)
@@ -57,6 +53,20 @@ class TestSequence(unittest.TestCase):
         wl = rqs.ResourceEstimator([5]*10 + [7]*10)
         seq = wl.compute_request_sequence()
         self.assertEqual(seq, [(7, 0)])
+
+    def test_discretization(self):
+        wl = rqs.ResourceEstimator([i for i in range(10)])
+        self.assertEqual(wl.discretization, 500)
+        # the default sequence for 10 walltime history uses interpolation
+        data, cdf = wl._get_cdf()
+        self.assertEqual(len(data), 500)
+
+
+# test the sequence extraction
+class TestSequence(unittest.TestCase):
+    def test_failed_init(self):
+        with self.assertRaises(AssertionError):
+            rqs.ResourceEstimator([])
 
     def test_compute_sequence(self):
         wl = rqs.ResourceEstimator([5]*10)
@@ -111,7 +121,7 @@ class TestSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         self.assertTrue(abs(sequence[0][0]/3600 - 23.8) < 0.1)
 
-    def test_configurations(self):
+    def test_system_models(self):
         # test the Cloud model (alpha 1 beta 0 gamma 0)
         history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
         wl = rqs.ResourceEstimator(history)
@@ -130,6 +140,7 @@ class TestSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence(cluster_cost=rqs.ClusterCosts(
             reservation_cost = 1, utilization_cost=0, deploy_cost=0))
         self.assertTrue(abs(sequence[0][0]/3600 - 22.4) < 0.1)
+
 
 # test the cost model
 class TestCostModel(unittest.TestCase):

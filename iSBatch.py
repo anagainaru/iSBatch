@@ -544,7 +544,6 @@ class CheckpointSequence(DefaultRequests):
                 if (ic, il) in self._E:
                     continue
                 R = self.CR.get_restart_time(self.discret_values[il])
-                print("Step",il," ",ic,"restart for", self.discret_values[il])
                 self.compute_E(ic, il, R)
             self.compute_E(0, il, 0)
 
