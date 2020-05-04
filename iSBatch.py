@@ -165,17 +165,9 @@ class ResourceEstimator():
         assert (self.data is not None),\
             'Data needs to be set to compute the discrete CDF'
 
-        discret_data = sorted(self.data)
-        cdf = [1 for _ in self.data]
-        todel = []
-        for i in range(len(self.data) - 1):
-            if discret_data[i] == discret_data[i + 1]:
-                todel.append(i)
-                cdf[i + 1] += cdf[i]
-        todel.sort(reverse=True)
-        for i in todel:
-            del discret_data[i]
-            del cdf[i]
+        discrete_data = list(Counter(self.data).keys())
+        discrete_data.sort()
+        cdf = list(Counter(self.data).values())
         cdf = [i * 1. / len(cdf) for i in cdf]
         for i in range(1, len(cdf)):
             cdf[i] += cdf[i-1]
