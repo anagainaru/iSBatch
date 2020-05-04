@@ -95,22 +95,33 @@ class ResourceEstimator():
 
     def __init__(self, past_runs, interpolation_model=None,
                  CR_strategy=CRStrategy.NeverCheckpoint, verbose=False,
-                 resource_discretization=500):
+                 resource_discretization=-1):
         self.verbose = verbose
         self.fit_model = None
         self.discrete_data = None
         self.default_interpolation = True
         self.checkpoint_strategy = CR_strategy
-        self.discretization = resource_discretization
-
+        self.discretization = -1
+        self.adjust_discrete_data = False
         assert (len(past_runs) > 0), "Invalid log provided"
         self.__set_workload(past_runs)
+        if resource_discretization>0:
+            assert(resource_discretization > 2), \
+                'The discretization needs at least 3 points'
+            self.discretization = resource_discretization
+            self.adjust_discrete_data = True
+
         if interpolation_model is not None:
             self.set_interpolation_model(interpolation_model)
             self.default_interpolation = False
         elif len(past_runs) < 100:
+            if self.discretization == -1:
+                self.discretization = 500
             self.set_interpolation_model(
                 DistInterpolation(discretization=self.discretization))
+
+        if self.discretization == -1:
+            self.discretization = len(past_runs)
 
     ''' Private functions '''
     def __set_workload(self, past_runs):
