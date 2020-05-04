@@ -3,6 +3,7 @@ import warnings
 import scipy.integrate as integrate
 import scipy.stats as st
 from scipy.optimize import curve_fit
+from collections import Counter
 import sys
 from enum import IntEnum
 
@@ -128,6 +129,38 @@ class ResourceEstimator():
         self.data = past_runs
         self.best_fit = None
 
+    def __adjust_discrete_data(self, discrete_data, cdf):
+        ''' Adjust the discrete_data / cdf according to the discretization '''
+
+        if self.discretization < len(cdf):
+            idx = np.random.choice(np.arange(len(cdf)),
+                                   self.discretization)
+            newdata = [discrete_data[i] for i in idx]
+            newcdf = [cdf[i] for i in idx]
+            # the largest value needs to be included in the selected data
+            if discrete_data[-1] not in newdata:
+                newdata[-1] = discrete_data[-1]
+                newcdf[-1] = cdf[-1]
+
+        if self.discretization > len(cdf):
+            idx = np.random.choice(np.arange(len(cdf) - 1),
+                                   abs(self.discretization - len(cdf)))
+            add_elements = Counter(idx) # where add_elements[idx]=count
+            newdata = discrete_data
+            newcdf = cdf
+            for idx in add_elements:
+                step = (discrete_data[idx + 1] - discrete_data[idx]) /\
+                       (add_elements[idx] + 1)
+                newdata += [discrete_data[idx] + i * step
+                            for i in range(add_elements[idx])]
+                step = (cdf[idx + 1] - cdf[idx]) / (add_elements[idx] + 1)
+                newcdf += [cdf[idx] + i * step
+                            for i in range(add_elements[idx])]
+
+        newdata = [x for _,x in sorted(zip(newcdf, newdata))]
+        newcdf.sort()
+        return (newdata, newcdf)
+
     def __compute_discrete_cdf(self):
         assert (self.data is not None),\
             'Data needs to be set to compute the discrete CDF'
@@ -149,6 +182,11 @@ class ResourceEstimator():
         # normalize the cdf
         for i in range(len(cdf)):
             cdf[i] /= cdf[-1]
+
+        # adjust the discrete data accordin to the discretization
+        if self.adjust_discrete_data:
+            discret_data, cdf = self.__adjust_discrete_data(
+                discret_data, cdf)
 
         self.discrete_data = discret_data
         self.cdf = cdf
