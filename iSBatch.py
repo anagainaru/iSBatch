@@ -3,6 +3,7 @@ import warnings
 import scipy.integrate as integrate
 import scipy.stats as st
 from scipy.optimize import curve_fit
+from collections import Counter
 import sys
 from enum import IntEnum
 
@@ -94,41 +95,79 @@ class ResourceEstimator():
         needed to be used for application submissions '''
 
     def __init__(self, past_runs, interpolation_model=None,
-                 CR_strategy=CRStrategy.NeverCheckpoint, verbose=False):
+                 CR_strategy=CRStrategy.NeverCheckpoint, verbose=False,
+                 resource_discretization=-1):
         self.verbose = verbose
         self.fit_model = None
         self.discrete_data = None
         self.default_interpolation = True
         self.checkpoint_strategy = CR_strategy
-
+        self.discretization = -1
+        self.adjust_discrete_data = False
         assert (len(past_runs) > 0), "Invalid log provided"
         self.__set_workload(past_runs)
+        if resource_discretization>0:
+            assert(resource_discretization > 2), \
+                'The discretization needs at least 3 points'
+            self.discretization = resource_discretization
+            self.adjust_discrete_data = True
+
         if interpolation_model is not None:
             self.set_interpolation_model(interpolation_model)
             self.default_interpolation = False
         elif len(past_runs) < 100:
-            self.set_interpolation_model(DistInterpolation())
+            if self.discretization == -1:
+                self.discretization = 500
+            self.set_interpolation_model(
+                DistInterpolation(discretization=self.discretization))
+
+        if self.discretization == -1:
+            self.discretization = len(past_runs)
 
     ''' Private functions '''
     def __set_workload(self, past_runs):
         self.data = past_runs
         self.best_fit = None
 
+    def __adjust_discrete_data(self, discrete_data, cdf):
+        ''' Adjust the discrete_data / cdf according to the discretization '''
+
+        if self.discretization < len(cdf):
+            idx = np.random.choice(np.arange(len(cdf)),
+                                   self.discretization)
+            newdata = [discrete_data[i] for i in idx]
+            newcdf = [cdf[i] for i in idx]
+            # the largest value needs to be included in the selected data
+            if discrete_data[-1] not in newdata:
+                newdata[-1] = discrete_data[-1]
+                newcdf[-1] = cdf[-1]
+
+        if self.discretization > len(cdf):
+            idx = np.random.choice(np.arange(len(cdf) - 1),
+                                   abs(self.discretization - len(cdf)))
+            add_elements = Counter(idx) # where add_elements[idx]=count
+            newdata = discrete_data
+            newcdf = cdf
+            for idx in add_elements:
+                step = (discrete_data[idx + 1] - discrete_data[idx]) /\
+                       (add_elements[idx] + 1)
+                newdata += [discrete_data[idx] + i * step
+                            for i in range(add_elements[idx])]
+                step = (cdf[idx + 1] - cdf[idx]) / (add_elements[idx] + 1)
+                newcdf += [cdf[idx] + i * step
+                            for i in range(add_elements[idx])]
+
+        newdata = [x for _,x in sorted(zip(newcdf, newdata))]
+        newcdf.sort()
+        return (newdata, newcdf)
+
     def __compute_discrete_cdf(self):
         assert (self.data is not None),\
             'Data needs to be set to compute the discrete CDF'
 
-        discret_data = sorted(self.data)
-        cdf = [1 for _ in self.data]
-        todel = []
-        for i in range(len(self.data) - 1):
-            if discret_data[i] == discret_data[i + 1]:
-                todel.append(i)
-                cdf[i + 1] += cdf[i]
-        todel.sort(reverse=True)
-        for i in todel:
-            del discret_data[i]
-            del cdf[i]
+        discrete_data = list(Counter(self.data).keys())
+        discrete_data.sort()
+        cdf = list(Counter(self.data).values())
         cdf = [i * 1. / len(cdf) for i in cdf]
         for i in range(1, len(cdf)):
             cdf[i] += cdf[i-1]
@@ -136,9 +175,14 @@ class ResourceEstimator():
         for i in range(len(cdf)):
             cdf[i] /= cdf[-1]
 
-        self.discrete_data = discret_data
+        # adjust the discrete data accordin to the discretization
+        if self.adjust_discrete_data:
+            discrete_data, cdf = self.__adjust_discrete_data(
+                discrete_data, cdf)
+
+        self.discrete_data = discrete_data
         self.cdf = cdf
-        return discret_data, cdf
+        return discrete_data, cdf
 
     def __compute_best_fit(self):
         if self.fit_model is None:
@@ -490,9 +534,8 @@ class CheckpointSequence(DefaultRequests):
     def __init__(self, discrete_values, cdf_values,
                  cluster_cost):
 
-        self._C = cluster_cost.get_checkpoint_time(0)
-        self._R = cluster_cost.get_restart_time(0)
         super().__init__(discrete_values, cdf_values, cluster_cost)
+        self.CR = cluster_cost.checkpoint_model
         E_val = self.compute_E_value((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
@@ -502,11 +545,12 @@ class CheckpointSequence(DefaultRequests):
         if R == 0:
             vic = 0
 
+        C = self.CR.get_checkpoint_time(self.discret_values[j])
         init = (self._alpha * (R + self.discret_values[j] - vic + \
-                delta * self._C) + self._beta * R + self._gamma) \
+                delta * C) + self._beta * R + self._gamma) \
                 * self._sumF[il + 1]
         init += self._beta * ((1 - delta) * (self.discret_values[j] - vic) \
-                              + delta * self._C) * self._sumF[j + 1]
+                              + delta * C) * self._sumF[j + 1]
         return init
 
     def compute_E(self, ic, il, R):
@@ -540,7 +584,8 @@ class CheckpointSequence(DefaultRequests):
             for ic in range(len(self.discret_values) - 1, 0, -1):
                 if (ic, il) in self._E:
                     continue
-                self.compute_E(ic, il, self._R)
+                R = self.CR.get_restart_time(self.discret_values[il])
+                self.compute_E(ic, il, R)
             self.compute_E(0, il, 0)
 
         return self._E[first]
@@ -591,7 +636,8 @@ class AllCheckpointSequence(CheckpointSequence):
         for i in range(len(self.discret_values) - 2, 0, -1):
             if (i, i) in self._E:
                 continue
-            self.compute_E(i, self._R)
+            R = self.CR.get_restart_time(self.discret_values[i])
+            self.compute_E(i, R)
         self.compute_E(0, 0)
 
         return self._E[first]
