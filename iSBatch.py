@@ -177,12 +177,12 @@ class ResourceEstimator():
 
         # adjust the discrete data accordin to the discretization
         if self.adjust_discrete_data:
-            discret_data, cdf = self.__adjust_discrete_data(
-                discret_data, cdf)
+            discrete_data, cdf = self.__adjust_discrete_data(
+                discrete_data, cdf)
 
-        self.discrete_data = discret_data
+        self.discrete_data = discrete_data
         self.cdf = cdf
-        return discret_data, cdf
+        return discrete_data, cdf
 
     def __compute_best_fit(self):
         if self.fit_model is None:
