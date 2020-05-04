@@ -54,12 +54,34 @@ class TestEstimationParameters(unittest.TestCase):
         seq = wl.compute_request_sequence()
         self.assertEqual(seq, [(7, 0)])
 
-    def test_discretization(self):
+    def test_default_discretization(self):
+        with self.assertRaises(AssertionError):
+            rqs.ResourceEstimator([i for i in range(10)],
+                                  resource_discretization=2)
         wl = rqs.ResourceEstimator([i for i in range(10)])
         self.assertEqual(wl.discretization, 500)
         # the default sequence for 10 walltime history uses interpolation
         data, cdf = wl._get_cdf()
         self.assertEqual(len(data), 500)
+        wl = rqs.ResourceEstimator([i for i in range(101)])
+        data, cdf = wl._get_cdf()
+        self.assertEqual(len(data), 101)
+
+    def test_custom_discretization(self):
+        wl = rqs.ResourceEstimator([i for i in range(10)],
+                                   resource_discretization=100)
+        self.assertEqual(wl.discretization, 100)
+        # the default sequence for 10 walltime history uses interpolation
+        data, cdf = wl._get_cdf()
+        self.assertEqual(len(data), 100)
+        wl = rqs.ResourceEstimator([i for i in range(101)],
+                                   resource_discretization=50)
+        data, cdf = wl._get_cdf()
+        self.assertEqual(len(data), 50)
+        wl = rqs.ResourceEstimator([i for i in range(101)],
+                                   resource_discretization=200)
+        data, cdf = wl._get_cdf()
+        self.assertEqual(len(data), 200)
 
 
 # test the sequence extraction
