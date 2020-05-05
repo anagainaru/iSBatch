@@ -166,8 +166,9 @@ class ResourceEstimator():
             'Data needs to be set to compute the discrete CDF'
 
         discrete_data = list(Counter(self.data).keys())
-        discrete_data.sort()
         cdf = list(Counter(self.data).values())
+        cdf = [x for _,x in sorted(zip(discrete_data, cdf))]
+        discrete_data.sort()
         cdf = [i * 1. / len(cdf) for i in cdf]
         for i in range(1, len(cdf)):
             cdf[i] += cdf[i-1]
