@@ -19,10 +19,10 @@ class CRStrategy(IntEnum):
 
 class StaticCheckpoint():
     ''' Default checkpoint model, defined by a static checkpoint/restart '''
-    
+
     def __init__(self, checkpoint_cost=1, restart_cost=1):
         self.C = checkpoint_cost
-        self.R = restart_cost        
+        self.R = restart_cost
 
     def get_checkpoint_time(self, ts):
         return self.C
@@ -106,7 +106,7 @@ class ResourceEstimator():
         self.adjust_discrete_data = False
         assert (len(past_runs) > 0), "Invalid log provided"
         self.__set_workload(past_runs)
-        if resource_discretization>0:
+        if resource_discretization > 0:
             assert(resource_discretization > 2), \
                 'The discretization needs at least 3 points'
             self.discretization = resource_discretization
@@ -125,6 +125,7 @@ class ResourceEstimator():
             self.discretization = len(past_runs)
 
     ''' Private functions '''
+
     def __set_workload(self, past_runs):
         self.data = past_runs
         self.best_fit = None
@@ -145,7 +146,7 @@ class ResourceEstimator():
         if self.discretization > len(cdf):
             idx = np.random.choice(np.arange(len(cdf) - 1),
                                    abs(self.discretization - len(cdf)))
-            add_elements = Counter(idx) # where add_elements[idx]=count
+            add_elements = Counter(idx)  # where add_elements[idx]=count
             newdata = discrete_data
             newcdf = cdf
             for idx in add_elements:
@@ -155,9 +156,9 @@ class ResourceEstimator():
                             for i in range(add_elements[idx])]
                 step = (cdf[idx + 1] - cdf[idx]) / (add_elements[idx] + 1)
                 newcdf += [cdf[idx] + i * step
-                            for i in range(add_elements[idx])]
+                           for i in range(add_elements[idx])]
 
-        newdata = [x for _,x in sorted(zip(newcdf, newdata))]
+        newdata = [x for _, x in sorted(zip(newcdf, newdata))]
         newcdf.sort()
         return (newdata, newcdf)
 
@@ -167,7 +168,7 @@ class ResourceEstimator():
 
         discrete_data = list(Counter(self.data).keys())
         cdf = list(Counter(self.data).values())
-        cdf = [x for _,x in sorted(zip(discrete_data, cdf))]
+        cdf = [x for _, x in sorted(zip(discrete_data, cdf))]
         discrete_data.sort()
         cdf = [i * 1. / len(cdf) for i in cdf]
         for i in range(1, len(cdf)):
@@ -188,7 +189,7 @@ class ResourceEstimator():
     def __compute_best_fit(self):
         if self.fit_model is None:
             return -1
-        
+
         # set dicrete data and cdf to the original ones
         ddata, dcdf = self.__compute_discrete_cdf()
 
@@ -209,7 +210,7 @@ class ResourceEstimator():
             self.__compute_best_fit()
         self.discrete_data, self.cdf = self.fit_model[
             self.best_fit_index].get_discrete_cdf(all_data, self.best_fit)
-       
+
         return self.discrete_data, self.cdf
 
     def __get_sequence_type(self):
@@ -221,7 +222,8 @@ class ResourceEstimator():
         return RequestSequence
 
     ''' Functions used for debuging or printing purposes '''
-    # Function that returns the best fit 
+    
+    # Function that returns the best fit
     def _get_best_fit(self):
         if self.best_fit is None:
             self.__compute_best_fit()
@@ -240,7 +242,7 @@ class ResourceEstimator():
             valid = self._check_cdf_validity(self.cdf)
             if valid:
                 return
-        
+
         self.__compute_discrete_cdf()
 
     def _get_cdf(self):
@@ -255,19 +257,20 @@ class ResourceEstimator():
         return all(cdf[i - 1] < cdf[i] for i in range(1, len(cdf)))
 
     ''' Public functions '''
+
     def set_interpolation_model(self, interpolation_model):
         if not isinstance(interpolation_model, list):
             self.fit_model = [interpolation_model]
         else:
             self.fit_model = interpolation_model
         self.best_fit = None
-        if len(self.fit_model)==0:
+        if len(self.fit_model) == 0:
             self.fit_model = None
             return -1
 
     def set_CR_strategy(self, CR_strategy):
         self.checkpoint_strategy = CR_strategy
-    
+
     def compute_request_sequence(self, cluster_cost=None):
         if cluster_cost == None:
             cluster_cost = ClusterCosts()
@@ -282,19 +285,20 @@ class ResourceEstimator():
         handler = LogDataCost(sequence)
         return handler.compute_cost(data, cluster_cost)
 
-#-------------
+# -------------
 # Classes for defining how the interpolation will be done
-#-------------
+# -------------
+
 
 class InterpolationModel():
     # define the format of the return values for the get_best_fit functions
     def get_empty_fit(self):
         return (-1, -1, np.inf)
-    
+
     def discretize_data(self, data, discrete_steps):
         step = (max(data) - min(data)) / discrete_steps
         return np.unique(
-            [min(data) + i * step for i in range(discrete_steps)] \
+            [min(data) + i * step for i in range(discrete_steps)]
             + [max(data)])
 
 
@@ -303,13 +307,14 @@ class FunctionInterpolation(InterpolationModel):
     def __init__(self, function, order=1, discretization=500):
         self.fct = function
         self.order = order
-        self.discrete_steps =  discretization - 1
+        self.discrete_steps = discretization - 1
 
     def get_discrete_cdf(self, data, best_fit):
         all_data = self.discretize_data(data, self.discrete_steps)
-        all_cdf = [max(0, min(1, np.polyval(best_fit, self.fct(d)))) for d in all_data]
+        all_cdf = [max(0, min(1, np.polyval(best_fit, self.fct(d))))
+                   for d in all_data]
         # make sure the cdf is always increasing
-        for i in range(1,len(all_cdf)):
+        for i in range(1, len(all_cdf)):
             if all_cdf[i] < all_cdf[i-1]:
                 all_cdf[i] = all_cdf[i-1]
         return all_data, all_cdf
@@ -322,7 +327,7 @@ class FunctionInterpolation(InterpolationModel):
             return self.get_empty_fit()
         err = np.sum((np.polyval(params, self.fct(x)) - y)**2)
         return (self.order, params, err)
-    
+
     def get_cdf(self, x, params):
         return np.polyval(params, self.fct(x))
 
@@ -331,13 +336,14 @@ class PolyInterpolation(InterpolationModel):
 
     def __init__(self, max_order=10, discretization=500):
         self.max_order = max_order
-        self.discrete_steps =  discretization - 1
+        self.discrete_steps = discretization - 1
 
     def get_discrete_cdf(self, data, best_fit):
         all_data = self.discretize_data(data, self.discrete_steps)
-        all_cdf = [max(0, min(1, np.polyval(best_fit[1], d))) for d in all_data]
+        all_cdf = [max(0, min(1, np.polyval(best_fit[1], d)))
+                   for d in all_data]
         # make sure the cdf is always increasing
-        for i in range(1,len(all_cdf)):
+        for i in range(1, len(all_cdf)):
             if all_cdf[i] < all_cdf[i-1]:
                 all_cdf[i] = all_cdf[i-1]
         return all_data, all_cdf
@@ -360,7 +366,7 @@ class PolyInterpolation(InterpolationModel):
                     best_order = order
                     best_params = params
                     best_err = err
-        
+
         return (best_order, best_params, best_err)
 
 
@@ -368,25 +374,26 @@ class DistInterpolation(InterpolationModel):
     def __init__(self, list_of_distr=[], discretization=500):
         self.distr = list_of_distr
         self.discrete_steps = discretization - 1
-    
+
     def get_discrete_cdf(self, data, best_fit):
         arg = best_fit[1][:-2]
         loc = best_fit[1][-2]
         scale = best_fit[1][-1]
         all_data = self.discretize_data(data, self.discrete_steps)
-        all_cdf = [best_fit[0].cdf(d, loc=loc, scale=scale, *arg) for d in all_data]
+        all_cdf = [best_fit[0].cdf(d, loc=loc, scale=scale, *arg)
+                   for d in all_data]
         return all_data, all_cdf
 
-    def get_best_fit(self, x, y): 
+    def get_best_fit(self, x, y):
         dist_list = self.distr
-        if len(dist_list)==0:
+        if len(dist_list) == 0:
             # list of distributions to check
-            dist_list = [        
-                st.alpha,st.beta,st.cosine,st.dgamma,st.dweibull,st.exponnorm,
-                st.exponweib,st.exponpow,st.genpareto,st.gamma,st.halfnorm,
-                st.invgauss,st.invweibull,st.laplace,st.loggamma,st.lognorm,
-                st.lomax,st.maxwell,st.norm,st.pareto,#st.pearson3,st.rice,
-                st.truncexpon,st.truncnorm,st.uniform,st.weibull_min,
+            dist_list = [
+                st.alpha, st.beta, st.cosine, st.dgamma, st.dweibull, st.exponnorm,
+                st.exponweib, st.exponpow, st.genpareto, st.gamma, st.halfnorm,
+                st.invgauss, st.invweibull, st.laplace, st.loggamma, st.lognorm,
+                st.lomax, st.maxwell, st.norm, st.pareto,  # st.pearson3,st.rice,
+                st.truncexpon, st.truncnorm, st.uniform, st.weibull_min,
                 st.weibull_max]
 
         # Best holders
@@ -424,9 +431,10 @@ class DistInterpolation(InterpolationModel):
 
         return (best_distribution, best_params, best_sse)
 
-#-------------
+# -------------
 # Classes for computing the sequence of requests
-#-------------
+# -------------
+
 
 class DefaultRequests():
     ''' Default class for generating the sequence of requests given 
@@ -446,7 +454,7 @@ class DefaultRequests():
         self.upper_limit = max(self.discret_values)
         self._E = {}
         self._request_sequence = []
-        
+
         self._sumF = self.get_discrete_sum_F()
         self._sumFV = self.compute_FV()
 
@@ -491,7 +499,7 @@ class RequestSequence(DefaultRequests):
 
     def makespan_init_value(self, i, j):
         init = float(self._alpha * self.discret_values[j] + self._gamma) \
-               * self._sumF[i]
+            * self._sumF[i]
         init += self._beta * self.discret_values[j] * self._sumF[j + 1]
         return init
 
@@ -517,11 +525,13 @@ class RequestSequence(DefaultRequests):
         j = 0
         E_val = self.compute_E_value(j)
         while E_val[1] < len(self.discret_values) - 1:
-            self._request_sequence.append((self.discret_values[E_val[1]], E_val[2]))
+            self._request_sequence.append(
+                (self.discret_values[E_val[1]], E_val[2]))
             j = E_val[1] + 1
             E_val = self.compute_E_value(j)
 
-        self._request_sequence.append((self.discret_values[E_val[1]], E_val[2]))
+        self._request_sequence.append(
+            (self.discret_values[E_val[1]], E_val[2]))
         if self._request_sequence[-1][0] != self.upper_limit:
             self._request_sequence.append((self.upper_limit, 0))
 
@@ -547,10 +557,10 @@ class CheckpointSequence(DefaultRequests):
             vic = 0
 
         C = self.CR.get_checkpoint_time(self.discret_values[j])
-        init = (self._alpha * (R + self.discret_values[j] - vic + \
-                delta * C) + self._beta * R + self._gamma) \
-                * self._sumF[il + 1]
-        init += self._beta * ((1 - delta) * (self.discret_values[j] - vic) \
+        init = (self._alpha * (R + self.discret_values[j] - vic +
+                               delta * C) + self._beta * R + self._gamma) \
+            * self._sumF[il + 1]
+        init += self._beta * ((1 - delta) * (self.discret_values[j] - vic)
                               + delta * C) * self._sumF[j + 1]
         return init
 
@@ -643,13 +653,15 @@ class AllCheckpointSequence(CheckpointSequence):
 
         return self._E[first]
 
-#-------------
+# -------------
 # Classes for defining how the cost is computed
-#-------------
+# -------------
+
 
 class SequenceCost():
     def compute_cost(self, data):
         return -1
+
 
 class LogDataCost(SequenceCost):
 
