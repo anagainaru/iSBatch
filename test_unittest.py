@@ -99,7 +99,8 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(sequence, [(5, 0)])
 
     def test_example_sequence_checkpoint(self):
-        history = np.loadtxt("log_examples/small.in", delimiter=' ')
+        history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
+        history = history[:10]
         wl = rqs.ResourceEstimator(
                 history, CR_strategy=rqs.CRStrategy.AdaptiveCheckpoint,
                 interpolation_model=[])
