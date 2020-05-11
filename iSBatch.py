@@ -133,6 +133,9 @@ class ResourceEstimator():
     def __adjust_discrete_data(self, discrete_data, cdf):
         ''' Adjust the discrete_data / cdf according to the discretization '''
 
+        if self.discretization == len(cdf):
+            return (discrete_data, cdf)
+
         if self.discretization < len(cdf):
             idx = np.random.choice(np.arange(len(cdf)),
                                    self.discretization)
