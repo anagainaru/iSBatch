@@ -6,11 +6,26 @@ Script testing the performance of iSBatch under different configurations
 
 The script is using `pytest` with the `pytest-benchmark` plugin.
 
-Usage: pytest benchmark.py --benchmark-min-rounds=10 --benchmark-json=output.json 
+**Usage:** pytest benchmark.py --benchmark-min-rounds=10 [--benchmark-json=output.json]
+
+Output: Performance results are outputed to the screen or in the json file. Performance and cost results are stored in the metrics.perf file.
 
 ### Tests implemented
 
-1. The size of the history size on the performance
+The tests measure the performance and cost changes for different parameters:
+
+1. The size of the training history for the discrete and polynomial interpolations
+    - Default discretization level of 500, no checkpointing
+
+2. The discretization level for the discrete and polynomial interpolations
+    - Default history size of 100 elements, no checkpointing
+
+
+3. The size of the training history for different checkpointing models for the discrete and polynomial interpolations
+   - Default discretization of 100 time intervals
+
+### Example output
+
 
 ```
 -------------------------------------------------------------------------------------------------------------- benchmark: 6 tests --------------------------------------------------------------------------------------------------------------
