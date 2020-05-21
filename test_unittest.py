@@ -99,7 +99,7 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(sequence, [(5, 0)])
 
     def test_example_sequence_checkpoint(self):
-        history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
+        history = np.loadtxt("examples/logs/truncnorm.in", delimiter=' ')
         history = history[:10]
         wl = rqs.ResourceEstimator(
                 history, CR_strategy=rqs.CRStrategy.AdaptiveCheckpoint,
@@ -122,7 +122,7 @@ class TestSequence(unittest.TestCase):
 
     def test_example_sequences(self):
         # test the default model (alpha 1, beta 1, gamma 0)
-        history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
+        history = np.loadtxt("examples/logs/truncnorm.in", delimiter=' ')
         wl = rqs.ResourceEstimator(history,
                           interpolation_model=[rqs.DistInterpolation(
                               list_of_distr=[norm],
@@ -139,14 +139,14 @@ class TestSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         self.assertTrue(abs(sequence[0][0] - 11.2) < 0.1)
 
-        history = np.loadtxt("log_examples/neuroscience.in", delimiter=' ')
+        history = np.loadtxt("examples/logs/neuroscience.in", delimiter=' ')
         wl = rqs.ResourceEstimator(history)
         sequence = wl.compute_request_sequence()
         self.assertTrue(abs(sequence[0][0]/3600 - 23.8) < 0.1)
 
     def test_system_models(self):
         # test the Cloud model (alpha 1 beta 0 gamma 0)
-        history = np.loadtxt("log_examples/truncnorm.in", delimiter=' ')
+        history = np.loadtxt("examples/logs/truncnorm.in", delimiter=' ')
         wl = rqs.ResourceEstimator(history)
         sequence = wl.compute_request_sequence(cluster_cost=rqs.ClusterCosts(
             reservation_cost = 1, utilization_cost=0, deploy_cost=0))
@@ -158,7 +158,7 @@ class TestSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence(cluster_cost=rqs.ClusterCosts(
             reservation_cost = 1, utilization_cost=0, deploy_cost=0))
         self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
-        history = np.loadtxt("log_examples/neuroscience.in", delimiter=' ')
+        history = np.loadtxt("examples/logs/neuroscience.in", delimiter=' ')
         wl = rqs.ResourceEstimator(history)
         sequence = wl.compute_request_sequence(cluster_cost=rqs.ClusterCosts(
             reservation_cost = 1, utilization_cost=0, deploy_cost=0))
@@ -205,7 +205,7 @@ class TestCostModel(unittest.TestCase):
         self.assertEqual(cost, 2)
 
     def test_cost_validity(self):
-        data = np.loadtxt("./log_examples/truncnorm.in", delimiter=' ')
+        data = np.loadtxt("./examples/logs/truncnorm.in", delimiter=' ')
         # compute the requests based on the entire data
         wl = rqs.ResourceEstimator(data)
         sequence = wl.compute_request_sequence()
