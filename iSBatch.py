@@ -17,7 +17,7 @@ class CRStrategy(IntEnum):
     AdaptiveCheckpoint = 2
 
 
-class StaticCheckpoint():
+class StaticCheckpointMemoryModel():
     ''' Default checkpoint model, defined by a static checkpoint/restart '''
 
     def __init__(self, checkpoint_cost=1, restart_cost=1):
@@ -31,7 +31,7 @@ class StaticCheckpoint():
         return self.R
 
 
-class DynamicCheckpoint():
+class DynamicCheckpointMemoryModel():
     ''' Dynamic checkpoint model, defined by read/write bandwidths and Csize,
     an array (checkpoint_size, time) that defines the valability of each size.
     Example: [(c1,0), (c2,10)] means the application checkpoint size is c1 for
@@ -73,21 +73,21 @@ class ClusterCosts():
         will cost alpha * t + beta * min(t, t1) + gamma '''
 
     def __init__(self, reservation_cost=1, utilization_cost=1, deploy_cost=0,
-                 checkpoint_model=None):
+                 checkpoint_memory_model=None):
         # default pay what you reserve (AWS model) (alpha 1 beta 0 gamma 0)
         # pay what you use (HPC model) would be alpha 1 beta 1 gamma 0
         self.alpha = reservation_cost
         self.beta = utilization_cost
         self.gamma = deploy_cost
-        self.checkpoint_model = checkpoint_model
-        if checkpoint_model is None:
-            self.checkpoint_model = StaticCheckpoint()
+        self.checkpoint_memory_model = checkpoint_memory_model
+        if checkpoint_memory_model is None:
+            self.checkpoint_memory_model = StaticCheckpointMemoryModel()
 
     def get_checkpoint_time(self, ts):
-        return self.checkpoint_model.get_checkpoint_time(ts)
+        return self.checkpoint_memory_model.get_checkpoint_time(ts)
 
     def get_restart_time(self, ts):
-        return self.checkpoint_model.get_restart_time(ts)
+        return self.checkpoint_memory_model.get_restart_time(ts)
 
 
 class ResourceEstimator():
@@ -549,7 +549,7 @@ class CheckpointSequence(DefaultRequests):
                  cluster_cost):
 
         super().__init__(discrete_values, cdf_values, cluster_cost)
-        self.CR = cluster_cost.checkpoint_model
+        self.CR = cluster_cost.checkpoint_memory_model
         E_val = self.compute_E_value((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
