@@ -13,8 +13,8 @@ if __name__ == '__main__':
     history = np.loadtxt(file_name, delimiter=' ')
 
     # set the cluster cost model
-    check_model = rqs.DynamicCheckpoint([(10, 0), (1, 12)])
-    cl_cost = rqs.ClusterCosts(checkpoint_model=check_model)
+    check_model = rqs.DynamicCheckpointMemoryModel([(10, 0), (1, 12)])
+    cl_cost = rqs.ClusterCosts(checkpoint_memory_model=check_model)
     wl = rqs.ResourceEstimator(history,
                                CR_strategy=rqs.CRStrategy.AlwaysCheckpoint)
     sequence = wl.compute_request_sequence()
