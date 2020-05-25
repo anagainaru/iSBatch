@@ -4,7 +4,10 @@ import os
 
 @pytest.hookimpl()
 def pytest_sessionstart(session):
-    os.remove("metrics.perf")
+    try:
+        os.remove("metrics.perf")
+    except:
+        pass
 
 
 @pytest.mark.hookwrapper

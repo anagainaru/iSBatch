@@ -34,7 +34,7 @@ def test_training_interpolation(benchmark, len_history, interpolation):
         interpolation = []
     else:
         interpolation = rqs.PolyInterpolation()
-    history = np.loadtxt("../log_examples/truncnorm.in", delimiter=' ')
+    history = np.loadtxt("../examples/logs/neuroscience.in", delimiter=' ')
     interpolation = rqs.PolyInterpolation()
     cost = benchmark(default_sequence, history[:len_history], history,
                      interpolation, 500, 0)
@@ -51,7 +51,7 @@ def test_discretization_interpolation(benchmark, discretization, interpolation):
         interpolation = []
     else:
         interpolation = rqs.PolyInterpolation(discretization=discretization)
-    history = np.loadtxt("../log_examples/truncnorm.in", delimiter=' ')
+    history = np.loadtxt("../examples/logs/neuroscience.in", delimiter=' ')
     interpolation = rqs.PolyInterpolation()
     cost = benchmark(default_sequence, history[:100], history,
                      interpolation, discretization, 0)
@@ -70,7 +70,7 @@ def test_training_checkpoint_interpolation(benchmark, stype, len_history, interp
         interpolation = []
     else:
         interpolation = rqs.PolyInterpolation(discretization=100)
-    history = np.loadtxt("../log_examples/truncnorm.in", delimiter=' ')
+    history = np.loadtxt("../examples/logs/neuroscience.in", delimiter=' ')
     cost = benchmark(default_sequence, history[:len_history], history,
                      interpolation, 100, stype)
     write_cost_to_file(sys._getframe().f_code.co_name, params, cost)
