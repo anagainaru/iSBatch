@@ -26,8 +26,8 @@ def default_sequence(training, history, interpolation, discretization,
 
 
 @pytest.mark.parametrize("len_history, interpolation",
-                         [(10, 0), (50, 0), (100, 0), (500, 0), (1000, 0),
-                          (10, 1), (50, 1), (100, 1), (500, 1), (1000, 1)])
+                         [(10, 0), (25, 0), (50, 0), (100, 0), (300, 0),
+                          (10, 1), (25, 1), (50, 1), (100, 1), (300, 1)])
 def test_training_interpolation(benchmark, len_history, interpolation):
     params = str(len_history) + ":" + str(interpolation)
     if interpolation == 0:
@@ -43,8 +43,8 @@ def test_training_interpolation(benchmark, len_history, interpolation):
 
 
 @pytest.mark.parametrize("discretization, interpolation",
-                         [(10, 0), (250, 0), (500, 0), (750, 0), (1000, 0),
-                          (10, 1), (250, 1), (500, 1), (750, 1), (1000, 1)])
+                         [(10, 0), (50, 0), (100, 0), (300, 0), (500, 0),
+                          (10, 1), (50, 1), (100, 1), (300, 1), (500, 1)])
 def test_discretization_interpolation(benchmark, discretization, interpolation):
     params = str(discretization) + ":" + str(interpolation)
     if interpolation == 0:
@@ -60,10 +60,10 @@ def test_discretization_interpolation(benchmark, discretization, interpolation):
 
 
 @pytest.mark.parametrize("len_history, stype, interpolation",
-                         [(100, 0, 0), (1000, 0, 0), (100, 1, 0),
-                          (1000, 1, 0), (100, 2, 0), (1000, 2, 0),
-                          (100, 0, 1), (1000, 0, 1), (100, 1, 1),
-                          (1000, 1, 1), (100, 2, 1), (1000, 2, 1)])
+                         [(50, 0, 0), (300, 0, 0), (50, 1, 0),
+                          (300, 1, 0), (50, 2, 0), (300, 2, 0),
+                          (50, 0, 1), (300, 0, 1), (50, 1, 1),
+                          (300, 1, 1), (50, 2, 1), (300, 2, 1)])
 def test_training_checkpoint_interpolation(benchmark, stype, len_history, interpolation):
     params = str(len_history) + ":" + str(stype) + ":" + str(interpolation)
     if interpolation == 0:
