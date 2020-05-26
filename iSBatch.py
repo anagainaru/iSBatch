@@ -681,12 +681,12 @@ class LogDataCost(SequenceCost):
         compute_time = 0
         # cost of reservation: alpha * t + beta min(t, reservation) + gamma
         for reservation in self.sequence:
-            cost += cluster_cost.alpha * (reservation[0] - compute_time)
+            cost += cluster_cost.alpha * reservation[0]
             cost += cluster_cost.beta * (
-                min(time, reservation[0]) - compute_time)
+                min(time - compute_time, reservation[0]))
             cost += cluster_cost.gamma
             # stop when the reservation is bigger than the execution time
-            if reservation[0] >= time:
+            if compute_time + reservation[0] >= time:
                 break
             if reservation[1] == 1:
                 compute_time += reservation[0]
