@@ -168,7 +168,7 @@ class TestSequence(unittest.TestCase):
 # test the cost model
 class TestCostModel(unittest.TestCase):
     def test_cost_with_checkpoint(self):
-        sequence = [(4, 1), (10, 0)]
+        sequence = [(4, 1), (6, 0)]
         handler = rqs.LogDataCost(sequence)
         cost = rqs.ClusterCosts(1, 0, 0)
         self.assertEqual(handler.compute_cost([3], cost), 4)
