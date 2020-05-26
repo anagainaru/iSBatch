@@ -57,15 +57,21 @@ test_history_length_default[10]        1,390,630.5981 (>1000.0)  1,560,813.0051 
 
 ## Results
 
-Test 1
+The neuroscience.in log is being used to compute the cost and walltime for each scenario. In all test scenarios, the first x elements in the log are used to extract the sequence of walltime requests (with x from 10 to the total size of the log, namely 300 entries). Using the entire log for training will give the optimal cost value (since all the data is used).
+
+**Test 1** For the default parameters, using less historic information leads to higher cost values for the sequence (worse sequences) but lower computational times. For this log there is little to no difference between using interpolation or not.
 
 ![Training](../docs/benchmarks/training_interpolation.png)
 
-Test 2
+**Test 2** The discretization level gives the granularity of the sequence. Finer granularity give better sequences but are making the process more computational intensive, for both polynomial and discrete interpolation. Polynomial interpolation gives better sequences when using small training sets.
 
 ![Discretization](../docs/benchmarks/discretization_interpolation.png)
 
-Test 3
+**Test 3** The sequences that are not using checkpoint have a 30% higher cost than using Checkpointing but can be computed much faster. Polynomial interpolation is always more expensive than the discrete one. Adaptive checkpointing has a complexity of (N^3) compared to (N^2) for the rest but give the best sequences.
 
 ![Checkpoint](../docs/benchmarks/training_checkpoint_interpolation.png)
+
+Detail look at the difference between Adaptive and Always Checkpoint:
+
+![Checkpoint](../docs/benchmarks/training_checkpoint_interpolation_detail.png)
 
