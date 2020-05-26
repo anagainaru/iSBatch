@@ -13,11 +13,11 @@ def pytest_sessionstart(session):
 @pytest.mark.hookwrapper
 def pytest_benchmark_group_stats(config, benchmarks, group_by):
     for bench in benchmarks:
-        fname = ":".join([i.split("[")[0]
-                          for i in bench["name"].split("_")[1:]])
+        print(bench)
+        params = [i.split("[")[0] for i in bench["name"].split("_")[1:]]
+        values = bench["name"].split("[")[1].split("]")[0].split("-")
+        fname = ":".join(params)
         with open("metrics.perf", 'a') as fp:
             fp.write("time %s %s %f\n" % (
-                fname,
-                ':'.join([str(bench["params"][i]) for i in bench["params"]]),
-                bench["mean"]))
+                fname, ':'.join(values), bench["mean"]))
     yield
