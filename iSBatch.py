@@ -44,19 +44,21 @@ class DynamicCheckpointMemoryModel():
 
         self.size = checkpoint_size
         # if the checkpoint size is a value create a list of one element
-        if not isinstance(checkpoint_size, list):
-            self.size = [(checkpoint_size, 0)]
+        if type(checkpoint_size) is int or  type(checkpoint_size) is float:
+            self.size = [(0, checkpoint_size)]
 
         # check sequence correctness
-        assert(self.size[0][1] == 0), "The C size needs to start from ts 0"
-        assert(all(self.size[i][1] < self.size[i + 1][1] for i in range(
+        assert(self.size[0][0] == 0), "The C size needs to start from ts 0"
+        assert(all(self.size[i][0] < self.size[i + 1][0] for i in range(
             len(self.size)-1))), "Incorrect ts in the checkpoint size sequence"
+        print([i for i in self.size])
+        assert(all(i[1] > 0 for i in self.size)), "Negative checkpoint size"
 
     def __get_size(self, ts):
         # find the last entry in the checkpoint_size list
         # that has the timestamp < the given ts
-        C = next((i for i in reversed(self.size) if i[1] <= 6), None)
-        return C[0]
+        C = next((i for i in reversed(self.size) if i[0] <= ts), None)
+        return C[1]
 
     def get_checkpoint_time(self, ts):
         size = self.__get_size(ts)
