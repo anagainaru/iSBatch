@@ -2,7 +2,6 @@ import sys
 sys.path.append("..")
 import iSBatch as rqs
 import numpy as np
-import sys
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:

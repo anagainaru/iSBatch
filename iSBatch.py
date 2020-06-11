@@ -51,7 +51,6 @@ class DynamicCheckpointMemoryModel():
         assert(self.size[0][0] == 0), "The C size needs to start from ts 0"
         assert(all(self.size[i][0] < self.size[i + 1][0] for i in range(
             len(self.size)-1))), "Incorrect ts in the checkpoint size sequence"
-        print([i for i in self.size])
         assert(all(i[1] > 0 for i in self.size)), "Negative checkpoint size"
 
     def __get_size(self, ts):

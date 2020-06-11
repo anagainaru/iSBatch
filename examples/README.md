@@ -32,17 +32,30 @@ computed using the first `training_size` elements of the history.
 
 **3. Example on how to use the dynamic checkpoint**
 
-```bash
-Usage: use_dynamic_checkpointing.py log_file
+Examples for generating an aggregated memory file used by the dynamic checkpoint can be found in the `logs` folder: `SLANT_run[id].mem`. The script that will parse all these logs and will generate one unique file with the maximum footprint at every given moment based on the logs can be used in the following manner:
 
-> python use_dynamic_checkpointing.py logs/truncnorm.in 
-Request sequence (static checkpoint): [(9.729941416301234, 1), (2.0187814273535434, 1), (1.454875089956344, 1), (0.13568750878573965, 0)]
-Request sequence (dynamic checkpoint): [(12.217778935513127, 1), (0.9858189980979937, 1), (0.13568750878573965, 0)]
+```bash
+Usage: prepare_memory_log.py memory_file_prefix [output_file]
+
+> python prepare_memory_log.py SLANT_run SLANT_memory.log 
+SLANT_run1.mem
+SLANT_run2.mem
+SLANT_run3.mem
+SLANT_run4.mem
+
+The output is generated in SLANT_memory.log
+```
+This file can later be used together with a walltime log for the same application to generate the sequences of requests:
+
+```bash
+Usage: use_dynamic_checkpointing.py walltime_log_file memory_file
+
+> python use_dynamic_checkpointing.py logs/SLANT_walltime.log logs/SLANT_memory.log 
+Request sequence (static checkpoint): [(9185.0, 1), (405.0, 0)]
+Request sequence (dynamic checkpoint): [(8635.0, 1), (550.0, 1), (405.0, 0)]
 ```
 
-Using the HPC cost model and the AlwaysCheckpoint strategy (meaning all the submissions except the last will include a checkpoint)
-the example compares the memory static checkpoint model (where the checkpoint/restart cost have the same value regardless when
-the snapshot is being taken) to a memory dynamic checkpoint model (the snapshot size changes throughout the lifetime of the 
+Using the HPC cost model and the AlwaysCheckpoint strategy (meaning all the submissions except the last will include a checkpoint) the example compares the memory static checkpoint model (where the checkpoint/restart cost have the same value regardless when the snapshot is being taken, specifically the max memory footprint) to a memory dynamic checkpoint model (the snapshot size changes throughout the lifetime of the 
 application)
 
 **4. Jupyter notebook for ploting the sequence of requests**
