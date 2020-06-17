@@ -33,8 +33,8 @@ Simple examples on how to use the modules in the library are shown in the `examp
 
 ```bash
 user:~/iSBatch$ cd examples
-user:~/iSBatch$ python get_sequence.py logs/neuroscience.in 
-Request sequence: [(80802.0, 0), (99019.0, 0)]
+user:~/iSBatch$ python get_sequence.py log_examples/CT_eye_segmentation.log
+Request sequence: [(80802.0,), (99019.0,)]
 ```
 
 To create your own scripts use the following steps:
