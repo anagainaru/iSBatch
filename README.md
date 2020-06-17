@@ -32,7 +32,7 @@ To use this code for generating walltime requests, include:
 Simple examples on how to use the modules in the library are shown in the jupyter lab file and in the `generate_sequence.py` file. Running this file on an input log (like the ones provided as examples in the `log_examples` folder) will return the execution time you need to use for submission on an HPC system described by the default parameters.
 
 ```bash
-user:~/iSBatch$ python get_sequence.py log_examples/neuroscience.in 
+user:~/iSBatch$ python get_sequence.py log_examples/CT_eye_segmentation.log
 Request sequence: [(80802.0,), (99019.0,)]
 
 ```

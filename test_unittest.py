@@ -139,7 +139,7 @@ class TestSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         self.assertTrue(abs(sequence[0][0] - 11.2) < 0.1)
 
-        history = np.loadtxt("examples/logs/neuroscience.in", delimiter=' ')
+        history = np.loadtxt("examples/logs/CT_eye_segmentation.log", delimiter=' ')
         wl = rqs.ResourceEstimator(history)
         sequence = wl.compute_request_sequence()
         self.assertTrue(abs(sequence[0][0]/3600 - 23.8) < 0.1)
@@ -158,7 +158,7 @@ class TestSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence(cluster_cost=rqs.ClusterCosts(
             reservation_cost = 1, utilization_cost=0, deploy_cost=0))
         self.assertTrue(abs(sequence[0][0] - 10.8) < 0.1)
-        history = np.loadtxt("examples/logs/neuroscience.in", delimiter=' ')
+        history = np.loadtxt("examples/logs/CT_eye_segmentation.log", delimiter=' ')
         wl = rqs.ResourceEstimator(history)
         sequence = wl.compute_request_sequence(cluster_cost=rqs.ClusterCosts(
             reservation_cost = 1, utilization_cost=0, deploy_cost=0))
