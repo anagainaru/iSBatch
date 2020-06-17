@@ -29,13 +29,14 @@ The HPC model is chosen by detault.
 To use this code for generating walltime requests, include:
 - `import iSBatch`
 
-Simple examples on how to use the modules in the library are shown in the jupyter lab file and in the `generate_sequence.py` file. Running this file on an input log (like the ones provided as examples in the `log_examples` folder) will return the execution time you need to use for submission on an HPC system described by the default parameters.
+Simple examples on how to use the modules in the library are shown in the `examples` folder. Running this file on an input log (like the ones provided as examples in the `examples/logs` folder) will return the execution time you need to use for submission on an HPC system described by the default parameters (with or without checkpointing at the end of the reservation).
 
 ```bash
+user:~/iSBatch$ cd examples
 user:~/iSBatch$ python get_sequence.py log_examples/CT_eye_segmentation.log
 Request sequence: [(80802.0,), (99019.0,)]
-
 ```
+
 To create your own scripts use the following steps:
 
 ### 1. Prepare the data
