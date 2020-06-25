@@ -91,30 +91,35 @@ class ClusterCosts():
         return self.checkpoint_memory_model.get_restart_time(ts)
 
 
+class ResourceParameters():
+    verbose = False
+    interpolation_model = None
+    CR_strategy = CRStrategy.NeverCheckpoint
+    resource_discretization = -1
+
+
 class ResourceEstimator():
     ''' Class used to generate the sequence of resource requests
         needed to be used for application submissions '''
 
-    def __init__(self, past_runs, interpolation_model=None,
-                 CR_strategy=CRStrategy.NeverCheckpoint, verbose=False,
-                 resource_discretization=-1):
-        self.verbose = verbose
+    def __init__(self, past_runs, params=ResourceParameters()):
+        self.verbose = params.verbose
         self.fit_model = None
         self.discrete_data = None
         self.default_interpolation = True
-        self.checkpoint_strategy = CR_strategy
+        self.checkpoint_strategy = params.CR_strategy
         self.discretization = -1
         self.adjust_discrete_data = False
         assert (len(past_runs) > 0), "Invalid log provided"
         self.__set_workload(past_runs)
-        if resource_discretization > 0:
-            assert(resource_discretization > 2), \
+        if params.resource_discretization > 0:
+            assert(params.resource_discretization > 2), \
                 'The discretization needs at least 3 points'
-            self.discretization = resource_discretization
+            self.discretization = params.resource_discretization
             self.adjust_discrete_data = True
 
-        if interpolation_model is not None:
-            self.set_interpolation_model(interpolation_model)
+        if params.interpolation_model is not None:
+            self.set_interpolation_model(params.interpolation_model)
             self.default_interpolation = False
         elif len(past_runs) < 100:
             if self.discretization == -1:
