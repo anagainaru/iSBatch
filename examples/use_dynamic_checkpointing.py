@@ -13,12 +13,13 @@ if __name__ == '__main__':
     memory_footprint = np.loadtxt(sys.argv[2], delimiter=',')
 
     # set the cluster cost model
+    params = rqs.ResourceParameters()
+    params.CR_strategy = rqs.CRStrategy.AlwaysCheckpoint
     check_model = rqs.StaticCheckpointMemoryModel(
             checkpoint_cost=np.max(memory_footprint),
             restart_cost=np.max(memory_footprint))
     cl_cost = rqs.ClusterCosts(checkpoint_memory_model=check_model)
-    wl = rqs.ResourceEstimator(history,
-                               CR_strategy=rqs.CRStrategy.AlwaysCheckpoint)
+    wl = rqs.ResourceEstimator(history, params=params)
     sequence = wl.compute_request_sequence(cluster_cost=cl_cost)
     print("Request sequence (static checkpoint): %s" %(sequence))
     

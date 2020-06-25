@@ -17,9 +17,11 @@ def default_sequence(training, history, interpolation, discretization,
                      stype):
     cl = rqs.ClusterCosts(1, 1, 0)
     training = np.append(training, max(history))
-    wl = rqs.ResourceEstimator(training, interpolation_model=interpolation,
-                               resource_discretization=discretization,
-                               CR_strategy=stype)
+    params = rqs.ResourceParameters()
+    params.interpolation_model = interpolation,
+    params.resource_discretization = discretization,
+    params.CR_strategy = stype
+    wl = rqs.ResourceEstimator(training, params=params)
     sequence = wl.compute_request_sequence(cluster_cost=cl)
     cost = wl.compute_sequence_cost(sequence, history, cluster_cost=cl)
     return cost
