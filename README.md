@@ -48,9 +48,10 @@ For our example, `history` will be a list of walltimes for past runs. Create a R
 ```python
 wf = iSBatch.ResourceEstimator(history)
 
-wf = iSBatch.ResourceEstimator(history,
-                               interpolation_model=iSBatch.DistInterpolation,
-                               CR_strategy=iSBatch.CRStrategy.AdaptiveCheckpoint)
+params = iSBatch.ResourceParameters()
+params.interpolation_model = iSBatch.DistInterpolation,
+params.CR_strategy=iSBatch.CRStrategy.AdaptiveCheckpoint
+wf = iSBatch.ResourceEstimator(history, params=params)
 ```
 
 If you wish to print the CDF of this data, the discrete data (e.g. unique walltimes) and the associated CDF values for each data can be extracted using the `_get_cdf()` function:
