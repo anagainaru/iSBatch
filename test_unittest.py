@@ -95,6 +95,25 @@ class TestEstimationParameters(unittest.TestCase):
         data, cdf = wl._get_cdf()
         self.assertEqual(len(data), 200)
 
+    def test_reservation_limits(self):
+        history = np.loadtxt("examples/logs/truncnorm.in", delimiter=' ')
+        params = rqs.ResourceParameters()
+        params.request_upper_limit=12.5
+        wl = rqs.ResourceEstimator(history, params=params)
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(all([i[0] < 12.5 for i in sequence]))
+        params = rqs.ResourceParameters()
+        params.request_lower_limit=12
+        wl = rqs.ResourceEstimator(history, params=params)
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(all([i[0] > 12 for i in sequence]))
+        params = rqs.ResourceParameters()
+        params.request_upper_limit=12.5
+        params.request_lower_limit=12
+        wl = rqs.ResourceEstimator(history, params=params)
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(all([i[0] > 12 and i[0] < 12.5 for i in sequence]))
+
 
 # test the sequence extraction
 class TestSequence(unittest.TestCase):
