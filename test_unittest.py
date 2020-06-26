@@ -37,7 +37,7 @@ class TestEstimationParameters(unittest.TestCase):
         params = rqs.ResourceParameters()
         params.interpolation_model=[]
         wl = rqs.ResourceEstimator([3, 3, 5, 7, 9 ,9],
-				   params=params)
+                                   params=params)
         wl._compute_cdf()
         cdf = [i / 6 for i in [2, 3, 4, 6]]
         self.assertEqual(wl.discrete_data, [3, 5, 7, 9])
