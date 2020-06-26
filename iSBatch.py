@@ -92,22 +92,22 @@ class ClusterCosts():
 
 
 class ResourceParameters():
-    verbose = False
     interpolation_model = None
-    CR_strategy = CRStrategy.NeverCheckpoint
     resource_discretization = -1
-
+    verbose = False
+    CR_strategy = CRStrategy.NeverCheckpoint
+    request_upper_limit = -1
+    request_lower_limit = -1
 
 class ResourceEstimator():
     ''' Class used to generate the sequence of resource requests
         needed to be used for application submissions '''
 
     def __init__(self, past_runs, params=ResourceParameters()):
-        self.verbose = params.verbose
+        self.params = params
         self.fit_model = None
         self.discrete_data = None
         self.default_interpolation = True
-        self.checkpoint_strategy = params.CR_strategy
         self.discretization = -1
         self.adjust_discrete_data = False
         assert (len(past_runs) > 0), "Invalid log provided"
@@ -223,12 +223,24 @@ class ResourceEstimator():
         return self.discrete_data, self.cdf
 
     def __get_sequence_type(self):
-        if self.checkpoint_strategy == CRStrategy.AdaptiveCheckpoint:
+        if self.params.CR_strategy == CRStrategy.AdaptiveCheckpoint:
             return CheckpointSequence
-        if self.checkpoint_strategy == CRStrategy.AlwaysCheckpoint:
+        if self.params.CR_strategy == CRStrategy.AlwaysCheckpoint:
             return AllCheckpointSequence
         # by default return request times when checkpoint is not availabe
         return RequestSequence
+
+    def __trim_according_to_limits(self):
+        idx = range(len(self.discrete_data))
+        if self.params.request_upper_limit != -1:
+            idx = [i for i in idx if self.discrete_data[i] <\
+                   self.params.request_upper_limit]
+        if self.params.request_lower_limit != -1:
+            idx = [i for i in idx if self.discrete_data[i] >\
+                   self.params.request_lower_limit]
+        discrete_data = [self.discrete_data[i] for i in idx]
+        cdf = [self.cdf[i] for i in idx]
+        return discrete_data, cdf
 
     ''' Functions used for debuging or printing purposes '''
     
@@ -278,14 +290,15 @@ class ResourceEstimator():
             return -1
 
     def set_CR_strategy(self, CR_strategy):
-        self.checkpoint_strategy = CR_strategy
+        self.params.CR_strategy = CR_strategy
 
     def compute_request_sequence(self, cluster_cost=None):
         if cluster_cost == None:
             cluster_cost = ClusterCosts()
         self._compute_cdf()
         sequence_type = self.__get_sequence_type()
-        handler = sequence_type(self.discrete_data, self.cdf, cluster_cost)
+        discrete_data, cdf = self.__trim_according_to_limits()
+        handler = sequence_type(discrete_data, cdf, cluster_cost)
         return handler.compute_request_sequence()
 
     def compute_sequence_cost(self, sequence, data, cluster_cost=None):
@@ -513,8 +526,8 @@ class RequestSequence(DefaultRequests):
         return init
 
     def compute_E_table(self, first):
-        self._E[len(self.discret_values)] = (self._beta * self._sumFV,
-                                             len(self.discret_values) - 1)
+        self._E[len(self.discret_values)] = (
+            self._beta * self._sumFV, len(self.discret_values) - 1, 0)
         for i in range(len(self.discret_values) - 1, first - 1, -1):
             min_makespan = -1
             min_request = -1
