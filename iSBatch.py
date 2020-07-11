@@ -317,11 +317,18 @@ class InterpolationModel():
     def get_empty_fit(self):
         return (-1, -1, np.inf)
 
-    def discretize_data(self, data, discrete_steps):
-        step = (max(data) - min(data)) / discrete_steps
+    def discretize_data(self, data, discrete_steps, limits=[]):
+        upper_limit = max(data)
+        lower_limit = min(data)
+        if len(limits) > 1 and limits[0] > min(data):
+            lower_limit = limits[0]
+        if len(limits) > 2:
+            if limits[1] < max(data) and lower_limit < limits[1]:
+                upper_limit = limits[1]
+        step = (upper_limit - lower_limit) / discrete_steps
         return np.unique(
-            [min(data) + i * step for i in range(discrete_steps)]
-            + [max(data)])
+            [lower_limit + i * step for i in range(discrete_steps)]
+            + [upper_limit])
 
 
 class FunctionInterpolation(InterpolationModel):
