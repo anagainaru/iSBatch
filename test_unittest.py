@@ -2,6 +2,14 @@ import unittest
 import numpy as np
 import iSBatch as rqs
 from scipy.stats import norm
+import warnings
+
+def ignore_warnings(test_func):
+    def do_test(self, *args, **kwargs):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            test_func(self, *args, **kwargs)
+    return do_test
 
 
 class TestEstimationParameters(unittest.TestCase):
@@ -95,25 +103,35 @@ class TestEstimationParameters(unittest.TestCase):
         data, cdf = wl._get_cdf()
         self.assertEqual(len(data), 200)
 
+    @ignore_warnings
     def test_reservation_limits(self):
         history = np.loadtxt("examples/logs/truncnorm.in", delimiter=' ')
         params = rqs.ResourceParameters()
-        params.request_upper_limit=12.5
+        params.request_upper_limit = 12.5
         wl = rqs.ResourceEstimator(history, params=params)
         sequence = wl.compute_request_sequence()
-        self.assertTrue(all([i[0] < 12.5 for i in sequence]))
+        self.assertTrue(all([i[0] <= 12.5 for i in sequence]))
         params = rqs.ResourceParameters()
-        params.request_lower_limit=12
+        params.request_lower_limit = 12
         wl = rqs.ResourceEstimator(history, params=params)
         sequence = wl.compute_request_sequence()
-        self.assertTrue(all([i[0] > 12 for i in sequence]))
+        self.assertTrue(all([i[0] >= 12 for i in sequence]))
         params = rqs.ResourceParameters()
-        params.request_upper_limit=12.5
-        params.request_lower_limit=12
+        params.request_upper_limit = 12.5
+        params.request_lower_limit = 12
         wl = rqs.ResourceEstimator(history, params=params)
         sequence = wl.compute_request_sequence()
-        self.assertTrue(all([i[0] > 12 and i[0] < 12.5 for i in sequence]))
+        self.assertTrue(all([i[0] >= 12 and i[0] <= 12.5 for i in sequence]))
 
+    def test_reservation_limits_interpolation(self):
+        history = np.loadtxt("examples/logs/truncnorm.in", delimiter=' ')
+        params = rqs.ResourceParameters()
+        params.interpolation_model = rqs.PolyInterpolation()
+        params.request_upper_limit = 12.5
+        params.request_lower_limit=12
+        wl = rqs.ResourceEstimator(history, params=params)
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(all([i[0] >= 12 and i[0] <= 12.5 for i in sequence]))
 
 # test the sequence extraction
 class TestSequence(unittest.TestCase):
@@ -121,6 +139,7 @@ class TestSequence(unittest.TestCase):
         with self.assertRaises(AssertionError):
             rqs.ResourceEstimator([])
 
+    @ignore_warnings
     def test_compute_sequence(self):
         wl = rqs.ResourceEstimator([5]*10)
         sequence = wl.compute_request_sequence()
@@ -129,6 +148,7 @@ class TestSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         self.assertEqual(sequence, [(5, 0)])
 
+    @ignore_warnings
     def test_example_sequence_checkpoint(self):
         history = np.loadtxt("examples/logs/truncnorm.in", delimiter=' ')
         history = history[:10]
@@ -229,6 +249,7 @@ class TestCostModel(unittest.TestCase):
         self.assertEqual(handler.compute_cost([3], cost), 8)
         self.assertEqual(handler.compute_cost([7], cost), 27)
 
+    @ignore_warnings
     def test_sequence_cost(self):
         wl = rqs.ResourceEstimator([5]*101)
         sequence = wl.compute_request_sequence()

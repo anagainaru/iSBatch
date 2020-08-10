@@ -6,6 +6,7 @@ from scipy.optimize import curve_fit
 from collections import Counter
 import sys
 from enum import IntEnum
+import warnings
 
 
 class CRStrategy(IntEnum):
@@ -104,6 +105,7 @@ class ResourceEstimator():
         needed to be used for application submissions '''
 
     def __init__(self, past_runs, params=ResourceParameters()):
+        # Set all initial data
         self.params = params
         self.fit_model = None
         self.discrete_data = None
@@ -112,6 +114,7 @@ class ResourceEstimator():
         self.adjust_discrete_data = False
         assert (len(past_runs) > 0), "Invalid log provided"
         self.__set_workload(past_runs)
+
         if params.resource_discretization > 0:
             assert(params.resource_discretization > 2), \
                 'The discretization needs at least 3 points'
@@ -128,7 +131,7 @@ class ResourceEstimator():
                 DistInterpolation(discretization=self.discretization))
 
         if self.discretization == -1:
-            self.discretization = len(past_runs)
+            self.discretization = len(set(past_runs))
 
     ''' Private functions '''
 
@@ -243,16 +246,19 @@ class ResourceEstimator():
         # by default return request times when checkpoint is not availabe
         return RequestSequence
 
-    def __trim_according_to_limits(self):
-        idx = range(len(self.discrete_data))
+    def __trim_according_to_limits(self, data=[], cdf=[]):
+        if len(data) == 0:
+            data = self.discrete_data
+            cdf = self.cdf
+        idx = range(len(data))
         if self.params.request_upper_limit != -1:
-            idx = [i for i in idx if self.discrete_data[i] <\
+            idx = [i for i in idx if data[i] <=\
                    self.params.request_upper_limit]
         if self.params.request_lower_limit != -1:
-            idx = [i for i in idx if self.discrete_data[i] >\
+            idx = [i for i in idx if data[i] >=\
                    self.params.request_lower_limit]
-        discrete_data = [self.discrete_data[i] for i in idx]
-        cdf = [self.cdf[i] for i in idx]
+        discrete_data = [data[i] for i in idx]
+        cdf = [cdf[i] for i in idx]
         return discrete_data, cdf
 
     ''' Functions used for debuging or printing purposes '''
@@ -288,7 +294,7 @@ class ResourceEstimator():
         test = all(elem >= 0 and elem <= 1 for elem in cdf)
         if not test:
             return False
-        return all(cdf[i - 1] < cdf[i] for i in range(1, len(cdf)))
+        return all(cdf[i - 1] <= cdf[i] for i in range(1, len(cdf)))
 
     ''' Public functions '''
 
@@ -311,6 +317,10 @@ class ResourceEstimator():
         self._compute_cdf()
         sequence_type = self.__get_sequence_type()
         discrete_data, cdf = self.__trim_according_to_limits()
+        if len(cdf) < 100:
+            warnings.warn("Warning! Sequence is computed based on only %d" \
+                          " elements. Interpolation is recommended" %(
+                              len(cdf)))
         handler = sequence_type(discrete_data, cdf, cluster_cost)
         return handler.compute_request_sequence()
 
@@ -333,9 +343,9 @@ class InterpolationModel():
     def discretize_data(self, data, discrete_steps, limits=[]):
         upper_limit = max(data)
         lower_limit = min(data)
-        if len(limits) > 1 and limits[0] > min(data):
+        if len(limits) > 0 and limits[0] > min(data):
             lower_limit = limits[0]
-        if len(limits) > 2:
+        if len(limits) > 1:
             if limits[1] < max(data) and lower_limit < limits[1]:
                 upper_limit = limits[1]
         step = (upper_limit - lower_limit) / discrete_steps
