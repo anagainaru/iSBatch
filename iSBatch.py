@@ -6,6 +6,7 @@ from scipy.optimize import curve_fit
 from collections import Counter
 import sys
 from enum import IntEnum
+import warnings
 
 
 class CRStrategy(IntEnum):
@@ -317,8 +318,9 @@ class ResourceEstimator():
         sequence_type = self.__get_sequence_type()
         discrete_data, cdf = self.__trim_according_to_limits()
         if len(cdf) < 100:
-            print("Warning! Sequence is computed based on only",
-                  len(cdf), "elements. Interpolation is recommended")
+            warnings.warn("Warning! Sequence is computed based on only %d" \
+                          " elements. Interpolation is recommended" %(
+                              len(cdf)))
         handler = sequence_type(discrete_data, cdf, cluster_cost)
         return handler.compute_request_sequence()
 
