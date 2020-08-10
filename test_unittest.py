@@ -101,18 +101,18 @@ class TestEstimationParameters(unittest.TestCase):
         params.request_upper_limit = 12.5
         wl = rqs.ResourceEstimator(history, params=params)
         sequence = wl.compute_request_sequence()
-        self.assertTrue(all([i[0] < 12.5 for i in sequence]))
+        self.assertTrue(all([i[0] <= 12.5 for i in sequence]))
         params = rqs.ResourceParameters()
         params.request_lower_limit = 12
         wl = rqs.ResourceEstimator(history, params=params)
         sequence = wl.compute_request_sequence()
-        self.assertTrue(all([i[0] > 12 for i in sequence]))
+        self.assertTrue(all([i[0] >= 12 for i in sequence]))
         params = rqs.ResourceParameters()
         params.request_upper_limit = 12.5
         params.request_lower_limit = 12
         wl = rqs.ResourceEstimator(history, params=params)
         sequence = wl.compute_request_sequence()
-        self.assertTrue(all([i[0] > 12 and i[0] < 12.5 for i in sequence]))
+        self.assertTrue(all([i[0] >= 12 and i[0] <= 12.5 for i in sequence]))
 
     def test_reservation_limits_interpolation(self):
         history = np.loadtxt("examples/logs/truncnorm.in", delimiter=' ')
@@ -122,7 +122,7 @@ class TestEstimationParameters(unittest.TestCase):
         params.request_lower_limit=12
         wl = rqs.ResourceEstimator(history, params=params)
         sequence = wl.compute_request_sequence()
-        self.assertTrue(all([i[0] > 12 and i[0] < 12.5 for i in sequence]))
+        self.assertTrue(all([i[0] >= 12 and i[0] <= 12.5 for i in sequence]))
 
 # test the sequence extraction
 class TestSequence(unittest.TestCase):

@@ -104,6 +104,7 @@ class ResourceEstimator():
         needed to be used for application submissions '''
 
     def __init__(self, past_runs, params=ResourceParameters()):
+        # Set all initial data
         self.params = params
         self.fit_model = None
         self.discrete_data = None
@@ -112,6 +113,7 @@ class ResourceEstimator():
         self.adjust_discrete_data = False
         assert (len(past_runs) > 0), "Invalid log provided"
         self.__set_workload(past_runs)
+
         if params.resource_discretization > 0:
             assert(params.resource_discretization > 2), \
                 'The discretization needs at least 3 points'
@@ -128,7 +130,7 @@ class ResourceEstimator():
                 DistInterpolation(discretization=self.discretization))
 
         if self.discretization == -1:
-            self.discretization = len(past_runs)
+            self.discretization = len(set(past_runs))
 
     ''' Private functions '''
 
@@ -288,7 +290,7 @@ class ResourceEstimator():
         test = all(elem >= 0 and elem <= 1 for elem in cdf)
         if not test:
             return False
-        return all(cdf[i - 1] < cdf[i] for i in range(1, len(cdf)))
+        return all(cdf[i - 1] <= cdf[i] for i in range(1, len(cdf)))
 
     ''' Public functions '''
 
@@ -311,6 +313,9 @@ class ResourceEstimator():
         self._compute_cdf()
         sequence_type = self.__get_sequence_type()
         discrete_data, cdf = self.__trim_according_to_limits()
+        if len(cdf) < 100:
+            print("Warning! Sequence is computed based on only",
+                  len(cdf), "elements. Interpolation is recommended")
         handler = sequence_type(discrete_data, cdf, cluster_cost)
         return handler.compute_request_sequence()
 
