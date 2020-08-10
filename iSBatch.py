@@ -245,16 +245,19 @@ class ResourceEstimator():
         # by default return request times when checkpoint is not availabe
         return RequestSequence
 
-    def __trim_according_to_limits(self):
-        idx = range(len(self.discrete_data))
+    def __trim_according_to_limits(self, data=[], cdf=[]):
+        if len(data) == 0:
+            data = self.discrete_data
+            cdf = self.cdf
+        idx = range(len(data))
         if self.params.request_upper_limit != -1:
-            idx = [i for i in idx if self.discrete_data[i] <\
+            idx = [i for i in idx if data[i] <=\
                    self.params.request_upper_limit]
         if self.params.request_lower_limit != -1:
-            idx = [i for i in idx if self.discrete_data[i] >\
+            idx = [i for i in idx if data[i] >=\
                    self.params.request_lower_limit]
-        discrete_data = [self.discrete_data[i] for i in idx]
-        cdf = [self.cdf[i] for i in idx]
+        discrete_data = [data[i] for i in idx]
+        cdf = [cdf[i] for i in idx]
         return discrete_data, cdf
 
     ''' Functions used for debuging or printing purposes '''
@@ -338,9 +341,9 @@ class InterpolationModel():
     def discretize_data(self, data, discrete_steps, limits=[]):
         upper_limit = max(data)
         lower_limit = min(data)
-        if len(limits) > 1 and limits[0] > min(data):
+        if len(limits) > 0 and limits[0] > min(data):
             lower_limit = limits[0]
-        if len(limits) > 2:
+        if len(limits) > 1:
             if limits[1] < max(data) and lower_limit < limits[1]:
                 upper_limit = limits[1]
         step = (upper_limit - lower_limit) / discrete_steps
