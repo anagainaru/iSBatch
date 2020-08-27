@@ -302,6 +302,9 @@ class ResourceEstimator():
             self.fit_model = [interpolation_model]
         else:
             self.fit_model = interpolation_model
+        for model in self.fit_model:
+            if model.discrete_steps < (self.discretization - 1):
+                model.discrete_steps = self.discretization - 1
         self.best_fit = None
         if len(self.fit_model) == 0:
             self.fit_model = None
