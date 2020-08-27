@@ -321,8 +321,8 @@ class ResourceEstimator():
         discrete_data, cdf = self.__trim_according_to_limits()
         if len(cdf) < 100:
             warnings.warn("Warning! Sequence is computed based on only %d" \
-                          " elements. Interpolation is recommended" %(
-                              len(cdf)))
+                          " elements. It is recommended to increase the" \
+                          " discretization value." %(len(cdf)))
         handler = sequence_type(discrete_data, cdf, cluster_cost)
         return handler.compute_request_sequence()
 
