@@ -127,6 +127,7 @@ class TestEstimationParameters(unittest.TestCase):
         history = np.loadtxt("examples/logs/truncnorm.in", delimiter=' ')
         params = rqs.ResourceParameters()
         params.interpolation_model = rqs.PolyInterpolation()
+        params.resource_discretization = 2400
         params.request_upper_limit = 12.5
         params.request_lower_limit=12
         wl = rqs.ResourceEstimator(history, params=params)

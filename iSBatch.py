@@ -234,8 +234,7 @@ class ResourceEstimator():
             self.__compute_best_fit()
         limits = self.__get_limits()
         self.discrete_data, self.cdf = self.fit_model[
-            self.best_fit_index].get_discrete_cdf(all_data, self.best_fit,
-                                                  limits=limits)
+            self.best_fit_index].get_discrete_cdf(all_data, self.best_fit)
         return self.discrete_data, self.cdf
 
     def __get_sequence_type(self):
@@ -303,6 +302,9 @@ class ResourceEstimator():
             self.fit_model = [interpolation_model]
         else:
             self.fit_model = interpolation_model
+        for model in self.fit_model:
+            if model.discrete_steps < (self.discretization - 1):
+                model.discrete_steps = self.discretization - 1
         self.best_fit = None
         if len(self.fit_model) == 0:
             self.fit_model = None
@@ -319,8 +321,8 @@ class ResourceEstimator():
         discrete_data, cdf = self.__trim_according_to_limits()
         if len(cdf) < 100:
             warnings.warn("Warning! Sequence is computed based on only %d" \
-                          " elements. Interpolation is recommended" %(
-                              len(cdf)))
+                          " elements. It is recommended to increase the" \
+                          " discretization value." %(len(cdf)))
         handler = sequence_type(discrete_data, cdf, cluster_cost)
         return handler.compute_request_sequence()
 
@@ -340,14 +342,9 @@ class InterpolationModel():
     def get_empty_fit(self):
         return (-1, -1, np.inf)
 
-    def discretize_data(self, data, discrete_steps, limits=[]):
+    def discretize_data(self, data, discrete_steps):
         upper_limit = max(data)
         lower_limit = min(data)
-        if len(limits) > 0 and limits[0] > min(data):
-            lower_limit = limits[0]
-        if len(limits) > 1:
-            if limits[1] < max(data) and lower_limit < limits[1]:
-                upper_limit = limits[1]
         step = (upper_limit - lower_limit) / discrete_steps
         return np.unique(
             [lower_limit + i * step for i in range(discrete_steps)]
@@ -361,9 +358,8 @@ class FunctionInterpolation(InterpolationModel):
         self.order = order
         self.discrete_steps = discretization - 1
 
-    def get_discrete_cdf(self, data, best_fit, limits=[]):
-        all_data = self.discretize_data(data, self.discrete_steps,
-                                        limits=limits)
+    def get_discrete_cdf(self, data, best_fit):
+        all_data = self.discretize_data(data, self.discrete_steps)
         all_cdf = [max(0, min(1, np.polyval(best_fit, self.fct(d))))
                    for d in all_data]
         # make sure the cdf is always increasing
@@ -391,9 +387,8 @@ class PolyInterpolation(InterpolationModel):
         self.max_order = max_order
         self.discrete_steps = discretization - 1
 
-    def get_discrete_cdf(self, data, best_fit, limits=[]):
-        all_data = self.discretize_data(data, self.discrete_steps,
-                                        limits=limits)
+    def get_discrete_cdf(self, data, best_fit):
+        all_data = self.discretize_data(data, self.discrete_steps)
         all_cdf = [max(0, min(1, np.polyval(best_fit[1], d)))
                    for d in all_data]
         # make sure the cdf is always increasing
@@ -429,12 +424,11 @@ class DistInterpolation(InterpolationModel):
         self.distr = list_of_distr
         self.discrete_steps = discretization - 1
 
-    def get_discrete_cdf(self, data, best_fit, limits=[]):
+    def get_discrete_cdf(self, data, best_fit):
         arg = best_fit[1][:-2]
         loc = best_fit[1][-2]
         scale = best_fit[1][-1]
-        all_data = self.discretize_data(data, self.discrete_steps,
-                                        limits=limits)
+        all_data = self.discretize_data(data, self.discrete_steps)
         all_cdf = [best_fit[0].cdf(d, loc=loc, scale=scale, *arg)
                    for d in all_data]
         return all_data, all_cdf
