@@ -703,6 +703,37 @@ class AllCheckpointSequence(CheckpointSequence):
         return self._E[first]
 
 # -------------
+# Classes for computing the sequence of requests
+# when the number of submissions is limited
+# -------------
+
+
+class LimitedSequence(DefaultRequests):
+    ''' Sequence that optimizes the total makespan of a job using a
+    maxim number of submissions (the checkpoint strategy can be
+    either one defined by the CRStrategy class) '''
+
+    def __init__(self, discrete_values, cdf_values,
+                 cluster_cost, cr_strategy, max_submissions):
+
+        super(ThBasedSequence, self).__init__(
+            discrete_values, cdf_values, cluster_cost)
+        assert (max_submissions > 0), "Invalid max # of submissions"
+        self.CRstrategy = cr_strategy
+        self.threshold = max_submissions
+
+
+class ThBasedSequence(LimitedSequence):
+    ''' The maxim number of submissions is given for each job
+    by a threshold (Threshold-Cons strategy from the documentation) '''
+
+
+class AvgBasedSequence(LimitedSequence):
+    ''' The maxim number of submissions is given by an average number
+    of submissions aggregated for all jobs (Expect-Cons strategy from
+    the documentation) '''
+
+# -------------
 # Classes for defining how the cost is computed
 # -------------
 
