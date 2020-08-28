@@ -722,6 +722,29 @@ class LimitedSequence(DefaultRequests):
         self.CRstrategy = cr_strategy
         self.threshold = max_submissions
 
+    def cost_with_checkpoint(self, restart_cost=0):
+        vic = self.discret_values[ic]
+        if restart_cost == 0:
+            vic = 0
+
+        C = self.CR.get_checkpoint_time(self.discret_values[j])
+        cost = self._alpha * (restart_cost + C + self.discret_values[j] - vic)
+        cost = (cost + self._gamma) * self._sumF[il + 1]
+        cost += self._beta * C * self._sumF[j + 1]
+        return cost
+
+    def cost_no_checkpoint(self, restart_cost=0):
+        vic = self.discret_values[ic]
+        if restart_cost == 0:
+            vic = 0
+
+        C = self.CR.get_checkpoint_time(self.discret_values[j])
+        cost = self._alpha * (restart_cost + self.discret_values[j] - vic)
+        cost = (cost + self._gamma) * self._sumF[il + 1]
+        cost += self._beta * self._sumF[j + 1] * \
+                (self.discret_values[j] - vic)
+        return cost
+
 
 class ThBasedSequence(LimitedSequence):
     ''' The maxim number of submissions is given for each job
