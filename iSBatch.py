@@ -99,6 +99,8 @@ class ResourceParameters():
     CR_strategy = CRStrategy.NeverCheckpoint
     request_upper_limit = -1
     request_lower_limit = -1
+    average_submissions_limit = -1
+    total_submissions_limit = -1
 
 class ResourceEstimator():
     ''' Class used to generate the sequence of resource requests
