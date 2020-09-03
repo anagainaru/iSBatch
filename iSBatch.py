@@ -99,6 +99,8 @@ class ResourceParameters():
     CR_strategy = CRStrategy.NeverCheckpoint
     request_upper_limit = -1
     request_lower_limit = -1
+    average_submissions_limit = -1
+    total_submissions_limit = -1
 
 class ResourceEstimator():
     ''' Class used to generate the sequence of resource requests
@@ -701,6 +703,127 @@ class AllCheckpointSequence(CheckpointSequence):
         self.compute_E(0, 0)
 
         return self._E[first]
+
+# -------------
+# Classes for computing the sequence of requests
+# when the number of submissions is limited
+# -------------
+
+
+class LimitedSequence(DefaultRequests):
+    ''' Sequence that optimizes the total makespan of a job using a
+    maxim number of submissions (the checkpoint strategy can be
+    either one defined by the CRStrategy class). The limit strategy
+    can either be ThBased or AvgBased '''
+
+    def __init__(self, discrete_values, cdf_values,
+                 cluster_cost, cr_strategy, limit_strategy,
+                 max_submissions):
+
+        super(LimitedSequence, self).__init__(
+            discrete_values, cdf_values, cluster_cost)
+        assert (max_submissions > 0), "Invalid max # of submissions"
+        self.threshold = max_submissions - 1
+        self.th_strategy = limit_strategy
+        self.CRstrategy = cr_strategy
+        self.CR = cluster_cost.checkpoint_memory_model
+        # todo accept other types of sequences
+        E_val = self.compute_E_adaptive((0, 0, self.threshold))
+        self.__t1 = self.discret_values[E_val[1]]
+        self.__makespan = E_val[0]
+
+    def makespan_with_checkpoint(self, ic, il, j, restart_cost):
+        vic = self.discret_values[ic]
+        if restart_cost == 0:
+            vic = 0
+
+        C = self.CR.get_checkpoint_time(self.discret_values[j])
+        cost = self._alpha * (restart_cost + C + self.discret_values[j] - vic)
+        cost = (cost + self._gamma) * self._sumF[il + 1]
+        cost += self._beta * C * self._sumF[j + 1]
+        return cost
+
+    def makespan_no_checkpoint(self, ic, il, j, restart_cost):
+        vic = self.discret_values[ic]
+        if restart_cost == 0:
+            vic = 0
+
+        C = self.CR.get_checkpoint_time(self.discret_values[j])
+        cost = self._alpha * (restart_cost + self.discret_values[j] - vic)
+        cost = (cost + self._gamma) * self._sumF[il + 1]
+        cost += self._beta * self._sumF[j + 1] * \
+                (self.discret_values[j] - vic)
+        return cost
+
+    def compute_E(self, ic, il, R, k):
+        min_makespan = np.inf
+        min_request = -1
+        min_delta = 0
+        for j in range(il, len(self.discret_values) - 1):
+            # we cannot exceed the threshold number of submission
+            if k < 2:
+                break
+            # makespan with checkpointing the last sequence (delta = 1)
+            makespan = self.makespan_with_checkpoint(ic, il, j, R)
+            makespan += self._E[(j + 1, j + 1, k - 1)][0]
+            if min_makespan >= makespan:
+                min_makespan = makespan
+                min_request = j
+                min_delta = 1
+
+            # makespan without checkpointing the last sequence (delta = 0)
+            makespan = self.makespan_no_checkpoint(ic, il, j, R)
+            makespan += self._E[(ic, j + 1, k - 1)][0]
+            if min_makespan >= makespan:
+                min_makespan = makespan
+                min_request = j
+                min_delta = 0
+
+        self._E[(ic, il, k)] = (min_makespan, min_request, min_delta)
+
+    def compute_E_adaptive(self, first):
+        th = self.threshold
+        for ic in range(len(self.discret_values) - 1, -1, -1):
+            for k in range(max(0, th - len(self.discret_values)), th):
+                self._E[(ic, len(self.discret_values) - 1, k)] = (
+                    self._beta * self._sumFV, len(self.discret_values) - 1, 0)
+
+        print(len(self.discret_values), self._E)
+        for il in range(len(self.discret_values) - 2, -1, -1):
+            for k in range(max(0, th - il), th):
+                for ic in range(il, 0, -1):
+                    print("Compute ", (ic, il, k))
+                    if (ic, il, k) in self._E:
+                        continue
+                    R = self.CR.get_restart_time(self.discret_values[il])
+                    self.compute_E(ic, il, R, k)
+                print("Compute ", (0, il, k))
+                self.compute_E(0, il, 0, k)
+
+        self.compute_E(0, 0, 0, th)
+        return self._E[first]
+
+    def compute_request_sequence(self):
+        if len(self._request_sequence) > 0:
+            return self._request_sequence
+        ic = 0
+        il = 0
+        th = self.threshold
+        E_val = self._E[(ic, il, th)]
+        already_compute = 0
+        while E_val[1] < len(self.discret_values) - 1:
+            self._request_sequence.append(
+                (self.discret_values[E_val[1]] - already_compute, E_val[2]))
+            ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
+            il = E_val[1] + 1
+            th -= 1
+            if E_val[2] == 1:
+                already_compute = self.discret_values[E_val[1]]
+            E_val = self._E[(ic, il, th)]
+
+        self._request_sequence.append(
+            (self.discret_values[E_val[1]] - already_compute, E_val[2]))
+        return self._request_sequence
 
 # -------------
 # Classes for defining how the cost is computed
