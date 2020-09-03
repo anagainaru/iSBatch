@@ -641,7 +641,7 @@ class CheckpointSequence(DefaultRequests):
                 self._beta * self._sumFV, len(self.discret_values) - 1, 0)
 
         for il in range(len(self.discret_values) - 2, -1, -1):
-            for ic in range(len(self.discret_values) - 1, 0, -1):
+            for ic in range(il, 0, -1):
                 if (ic, il) in self._E:
                     continue
                 R = self.CR.get_restart_time(self.discret_values[il])
