@@ -107,7 +107,7 @@ class ResourceParameters():
     CR_strategy = CRStrategy.NeverCheckpoint
     request_upper_limit = -1
     request_lower_limit = -1
-    submissions_limit = -1
+    submissions_limit = None
     submissions_limit_strategy = LimitStrategy.ThresholdBased
 
 class ResourceEstimator():
@@ -253,7 +253,7 @@ class ResourceEstimator():
         if self.params.CR_strategy == CRStrategy.AdaptiveCheckpoint:
             warnings.warn("Warning! The adaptive CR strategy has high " \
                           "complexity. Expect large run times.")
-        if self.params.submissions_limit > 0:
+        if self.params.submissions_limit is not None:
             return LimitedSequence, (self.params.CR_strategy,
                                      self.params.submissions_limit_strategy,
                                      self.params.submissions_limit)
