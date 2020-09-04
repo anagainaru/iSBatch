@@ -222,6 +222,37 @@ class TestSequence(unittest.TestCase):
         self.assertTrue(abs(sequence[0][0]/3600 - 22.4) < 0.1)
 
 
+# test the sequence extraction
+class TestLimitedSequence(unittest.TestCase):
+    def test_failed_init(self):
+        params = rqs.ResourceParameters()
+        params.submissions_limit = 0
+        wl = rqs.ResourceEstimator([i for i in range(1000)],
+                                    params=params)
+        with self.assertRaises(AssertionError):
+            sequence = wl.compute_request_sequence()
+
+    @ignore_warnings
+    def test_threshold_based_submission(self):
+        history = np.loadtxt('examples/logs/truncnorm.in', delimiter=' ')
+        params = rqs.ResourceParameters()
+        params.submissions_limit = 2
+        params.submissions_limit_strategy = rqs.LimitStrategy.ThresholdBased
+        params.CR_strategy = rqs.CRStrategy.NeverCheckpoint
+        wl = rqs.ResourceEstimator(history, params=params)
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(len(sequence) <= 2)
+        params.CR_strategy = rqs.CRStrategy.AlwaysCheckpoint
+        wl = rqs.ResourceEstimator(history, params=params)
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(len(sequence) <= 2)
+        params.CR_strategy = rqs.CRStrategy.AdaptiveCheckpoint
+        params.resource_discretization = 50
+        wl = rqs.ResourceEstimator(history, params=params)
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(len(sequence) <= 2)
+
+
 # test the cost model
 class TestCostModel(unittest.TestCase):
     def test_cost_with_checkpoint(self):

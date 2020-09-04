@@ -107,7 +107,7 @@ class ResourceParameters():
     CR_strategy = CRStrategy.NeverCheckpoint
     request_upper_limit = -1
     request_lower_limit = -1
-    submissions_limit = -1
+    submissions_limit = None
     submissions_limit_strategy = LimitStrategy.ThresholdBased
 
 class ResourceEstimator():
@@ -251,9 +251,9 @@ class ResourceEstimator():
         ''' Function returns sequence_type, parameters '''
 
         if self.params.CR_strategy == CRStrategy.AdaptiveCheckpoint:
-            warnings.warn("Warning! The adaptive CR strategy has high" \
+            warnings.warn("Warning! The adaptive CR strategy has high " \
                           "complexity. Expect large run times.")
-        if self.params.submissions_limit > 0:
+        if self.params.submissions_limit is not None:
             return LimitedSequence, (self.params.CR_strategy,
                                      self.params.submissions_limit_strategy,
                                      self.params.submissions_limit)
@@ -340,8 +340,8 @@ class ResourceEstimator():
         discrete_data, cdf = self.__trim_according_to_limits()
         if len(cdf) < 100:
             warnings.warn("Warning! Sequence is computed based on only" \
-                          "%d elements. It is recommended" %(len(cdf)) \
-                          " to increase the discretization value.")
+                          "%d elements. It is recommended to " \
+                          "increase the discretization value." %(len(cdf)))
         handler = sequence_type(discrete_data, cdf,
                                 cluster_cost, params=params)
         return handler.compute_request_sequence()
@@ -795,29 +795,30 @@ class LimitedSequence(DefaultRequests):
         min_delta = 0
         for j in range(il, len(self.discret_values) - 1):
             # we cannot exceed the threshold number of submission
-            if k < 2:
+            if k < 1:
                 break
             # makespan with checkpointing the last sequence (delta = 1)
-            makespan = self.makespan_with_checkpoint(ic, il, j, R)
-            idx = self._E_index[(j + 1, j + 1)][k - 1]
-            makespan += self._E[(j + 1, j + 1)][idx][0]
-            if min_makespan >= makespan:
-                min_makespan = makespan
-                min_request = j
-                min_delta = 1
+            if self.CRstrategy != CRStrategy.NeverCheckpoint:
+                makespan = self.makespan_with_checkpoint(ic, il, j, R)
+                idx = self._E_index[(j + 1, j + 1)][k - 1]
+                makespan += self._E[(j + 1, j + 1)][idx][0]
+                if min_makespan >= makespan:
+                    min_makespan = makespan
+                    min_request = j
+                    min_delta = 1
 
             # makespan without checkpointing the last sequence (delta = 0)
-            makespan = self.makespan_no_checkpoint(ic, il, j, R)
-            self._E_index[(ic, j + 1)][k - 1]
-            makespan += self._E[(ic, j + 1)][idx][0]
-            if min_makespan >= makespan:
-                min_makespan = makespan
-                min_request = j
-                min_delta = 0
+            if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
+                makespan = self.makespan_no_checkpoint(ic, il, j, R)
+                idx = self._E_index[(ic, j + 1)][k - 1]
+                makespan += self._E[(ic, j + 1)][idx][0]
+                if min_makespan >= makespan:
+                    min_makespan = makespan
+                    min_request = j
+                    min_delta = 0
 
-        self.add_element_in_E((ic, il),
-                              (min_makespan, min_request, min_delta),
-                              k)
+        self.add_element_in_E(
+            (ic, il), (min_makespan, min_request, min_delta), k)
 
     def compute_E_adaptive(self, first):
         th = self.threshold
@@ -828,13 +829,17 @@ class LimitedSequence(DefaultRequests):
                                             len(self.discret_values) - 1, 0),
                                       k)
         for il in range(len(self.discret_values) - 2, -1, -1):
-            for k in range(max(1, th - il), th):
-                for ic in range(il, 0, -1):
-                    if (ic, il) in self._E and k in self._E_index[(ic, il)]:
-                        continue
-                    R = self.CR.get_restart_time(self.discret_values[il])
-                    self.compute_E(ic, il, R, k)
-                self.compute_E(0, il, 0, k)
+            R = self.CR.get_restart_time(self.discret_values[il])
+            for k in range(max(0, th - il), th):
+                if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
+                    for ic in range(il, 0, -1):
+                        if (ic, il) in self._E and k in self._E_index[(ic, il)]:
+                            continue
+                        self.compute_E(ic, il, R, k)
+                if self.CRstrategy == CRStrategy.AlwaysCheckpoint:
+                    self.compute_E(il, il, R, k)
+                if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
+                    self.compute_E(0, il, 0, k)
 
         self.compute_E(0, 0, 0, th)
         idx = self._E_index[first][th]
