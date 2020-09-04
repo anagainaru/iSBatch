@@ -18,6 +18,14 @@ class CRStrategy(IntEnum):
     AdaptiveCheckpoint = 2
 
 
+class LimitStrategy(IntEnum):
+    ''' Enumeration class to hold the types of strategies for
+        limiting the allowed number of submissions '''
+
+    ThresholdBased = 0
+    AverageBased = 1
+
+
 class StaticCheckpointMemoryModel():
     ''' Default checkpoint model, defined by a static checkpoint/restart '''
 
@@ -99,8 +107,8 @@ class ResourceParameters():
     CR_strategy = CRStrategy.NeverCheckpoint
     request_upper_limit = -1
     request_lower_limit = -1
-    average_submissions_limit = -1
-    total_submissions_limit = -1
+    submissions_limit = -1
+    submissions_limit_strategy = LimitStrategy.ThresholdBased
 
 class ResourceEstimator():
     ''' Class used to generate the sequence of resource requests
@@ -240,12 +248,21 @@ class ResourceEstimator():
         return self.discrete_data, self.cdf
 
     def __get_sequence_type(self):
+        ''' Function returns sequence_type, parameters '''
+
         if self.params.CR_strategy == CRStrategy.AdaptiveCheckpoint:
-            return CheckpointSequence
+            warnings.warn("Warning! The adaptive CR strategy has high" \
+                          "complexity. Expect large run times.")
+        if self.params.submissions_limit > 0:
+            return LimitedSequence, (self.params.CR_strategy,
+                                     self.params.submissions_limit_strategy,
+                                     self.params.submissions_limit)
+        if self.params.CR_strategy == CRStrategy.AdaptiveCheckpoint:
+            return CheckpointSequence, ()
         if self.params.CR_strategy == CRStrategy.AlwaysCheckpoint:
-            return AllCheckpointSequence
+            return AllCheckpointSequence, ()
         # by default return request times when checkpoint is not availabe
-        return RequestSequence
+        return RequestSequence, ()
 
     def __trim_according_to_limits(self, data=[], cdf=[]):
         if len(data) == 0:
@@ -319,13 +336,14 @@ class ResourceEstimator():
         if cluster_cost == None:
             cluster_cost = ClusterCosts()
         self._compute_cdf()
-        sequence_type = self.__get_sequence_type()
+        sequence_type, params = self.__get_sequence_type()
         discrete_data, cdf = self.__trim_according_to_limits()
         if len(cdf) < 100:
-            warnings.warn("Warning! Sequence is computed based on only %d" \
-                          " elements. It is recommended to increase the" \
-                          " discretization value." %(len(cdf)))
-        handler = sequence_type(discrete_data, cdf, cluster_cost)
+            warnings.warn("Warning! Sequence is computed based on only" \
+                          "%d elements. It is recommended" %(len(cdf)) \
+                          " to increase the discretization value.")
+        handler = sequence_type(discrete_data, cdf,
+                                cluster_cost, params=params)
         return handler.compute_request_sequence()
 
     def compute_sequence_cost(self, sequence, data, cluster_cost=None):
@@ -492,7 +510,7 @@ class DefaultRequests():
     an application behavior and system properties '''
 
     def __init__(self, discrete_values, cdf_values,
-                 cluster_cost):
+                 cluster_cost, params=[]):
         self._alpha = cluster_cost.alpha
         self._beta = cluster_cost.beta
         self._gamma = cluster_cost.gamma
@@ -541,7 +559,7 @@ class RequestSequence(DefaultRequests):
     values (instead of a continuous space) '''
 
     def __init__(self, discrete_values, cdf_values,
-                 cluster_cost):
+                 cluster_cost, params=[]):
 
         super().__init__(discrete_values, cdf_values, cluster_cost)
         E_val = self.compute_E_value(0)
@@ -594,9 +612,10 @@ class CheckpointSequence(DefaultRequests):
     application or system is capable of taking checkpoints '''
 
     def __init__(self, discrete_values, cdf_values,
-                 cluster_cost):
+                 cluster_cost, params=[]):
 
-        super().__init__(discrete_values, cdf_values, cluster_cost)
+        super().__init__(discrete_values, cdf_values, cluster_cost,
+                         params=[])
         self.CR = cluster_cost.checkpoint_memory_model
         E_val = self.compute_E_value((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
@@ -717,17 +736,17 @@ class LimitedSequence(DefaultRequests):
     can either be ThBased or AvgBased '''
 
     def __init__(self, discrete_values, cdf_values,
-                 cluster_cost, cr_strategy, limit_strategy,
-                 max_submissions):
+                 cluster_cost, params=[]):
 
         super(LimitedSequence, self).__init__(
             discrete_values, cdf_values, cluster_cost)
         self._E_index = {}
 
-        assert (max_submissions > 0), "Invalid max # of submissions"
-        self.threshold = max_submissions - 1
-        self.th_strategy = limit_strategy
-        self.CRstrategy = cr_strategy
+        assert (params[2] > 0), "Invalid bound for the submissions"
+        assert (len(params)>=3), "Not enough parameters provided"
+        self.threshold = params[2] - 1
+        self.th_strategy = params[1]
+        self.CRstrategy = params[0]
         self.CR = cluster_cost.checkpoint_memory_model
         # todo accept other types of sequences
         E_val = self.compute_E_adaptive((0, 0))
@@ -808,16 +827,13 @@ class LimitedSequence(DefaultRequests):
                 self.add_element_in_E(idx, (self._beta * self._sumFV,
                                             len(self.discret_values) - 1, 0),
                                       k)
-        print(self._E_index, self._E)
         for il in range(len(self.discret_values) - 2, -1, -1):
             for k in range(max(1, th - il), th):
                 for ic in range(il, 0, -1):
-                    print("Compute ", (ic, il, k))
                     if (ic, il) in self._E and k in self._E_index[(ic, il)]:
                         continue
                     R = self.CR.get_restart_time(self.discret_values[il])
                     self.compute_E(ic, il, R, k)
-                print("Compute ", (0, il, k))
                 self.compute_E(0, il, 0, k)
 
         self.compute_E(0, 0, 0, th)
