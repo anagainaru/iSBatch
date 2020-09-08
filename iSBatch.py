@@ -754,7 +754,8 @@ class LimitedSequence(DefaultRequests):
             self._E[(0,0)].append(E_val)
             self._E_index[(0, 0)] = {0: 0}
         else:
-            E_val = self.compute_E_adaptive((0, 0))
+            if self.th_strategy == LimitStrategy.ThresholdBased:
+                E_val = self.compute_E_threshold((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
 
@@ -798,14 +799,17 @@ class LimitedSequence(DefaultRequests):
         min_makespan = np.inf
         min_request = -1
         min_delta = 0
+        th_step = 1
         for j in range(il, len(self.discret_values) - 1):
+            if self.th_strategy == LimitStrategy.AverageBased:
+                th_step = self._sumF[j + 1]
             # we cannot exceed the threshold number of submission
             if k < 1:
                 break
             # makespan with checkpointing the last sequence (delta = 1)
             if self.CRstrategy != CRStrategy.NeverCheckpoint:
                 makespan = self.makespan_with_checkpoint(ic, il, j, R)
-                idx = self._E_index[(j + 1, j + 1)][k - 1]
+                idx = self._E_index[(j + 1, j + 1)][k - th_step]
                 makespan += self._E[(j + 1, j + 1)][idx][0]
                 if min_makespan >= makespan:
                     min_makespan = makespan
@@ -815,7 +819,7 @@ class LimitedSequence(DefaultRequests):
             # makespan without checkpointing the last sequence (delta = 0)
             if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
                 makespan = self.makespan_no_checkpoint(ic, il, j, R)
-                idx = self._E_index[(ic, j + 1)][k - 1]
+                idx = self._E_index[(ic, j + 1)][k - th_step]
                 makespan += self._E[(ic, j + 1)][idx][0]
                 if min_makespan >= makespan:
                     min_makespan = makespan
@@ -825,7 +829,7 @@ class LimitedSequence(DefaultRequests):
         self.add_element_in_E(
             (ic, il), (min_makespan, min_request, min_delta), k)
 
-    def compute_E_adaptive(self, first):
+    def compute_E_threshold(self, first):
         th = self.threshold
         for ic in range(len(self.discret_values) - 1, -1, -1):
             for k in range(max(0, th - len(self.discret_values)), th):
@@ -849,6 +853,9 @@ class LimitedSequence(DefaultRequests):
         self.compute_E(0, 0, 0, th)
         idx = self._E_index[first][th]
         return self._E[first][idx]
+
+    def compute_E_average(self, first):
+        return (1, len(self.discret_values) - 1, 0)
 
     def compute_request_sequence(self):
         if len(self._request_sequence) > 0:
