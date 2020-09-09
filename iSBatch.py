@@ -7,7 +7,7 @@ from collections import Counter
 import sys
 from enum import IntEnum
 import warnings
-
+import itertools
 
 class CRStrategy(IntEnum):
     ''' Enumeration class to hold the types of Checkpoint/Restart
@@ -853,6 +853,18 @@ class LimitedSequence(DefaultRequests):
         self.compute_E(0, 0, 0, th)
         idx = self._E_index[first][th]
         return self._E[first][idx]
+
+    def __create_k_list(self, n, th):
+        k_list = []
+        for total_elements in range(1, n):
+            for res in itertools.combinations(list(range(1, n)),
+                                              total_elements):
+                # only keep the entries with submissions below the limit
+                if th - sum([self._sumF[i + 1] for i in res]) < 0:
+                    continue
+                k_list.append(res)
+        k_list = sorted(k_list, key=lambda e: (max(e), sum(e)), reverse=True)
+        return k_list
 
     def compute_E_average(self, first):
         return (1, len(self.discret_values) - 1, 0)
