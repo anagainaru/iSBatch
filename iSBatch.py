@@ -7,7 +7,7 @@ from collections import Counter
 import sys
 from enum import IntEnum
 import warnings
-
+import itertools
 
 class CRStrategy(IntEnum):
     ''' Enumeration class to hold the types of Checkpoint/Restart
@@ -754,7 +754,10 @@ class LimitedSequence(DefaultRequests):
             self._E[(0,0)].append(E_val)
             self._E_index[(0, 0)] = {0: 0}
         else:
-            E_val = self.compute_E_adaptive((0, 0))
+            if self.th_strategy == LimitStrategy.ThresholdBased:
+                E_val = self.compute_E_threshold((0, 0))
+            else:
+                E_val = self.compute_E_average((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
 
@@ -798,14 +801,17 @@ class LimitedSequence(DefaultRequests):
         min_makespan = np.inf
         min_request = -1
         min_delta = 0
+        th_next = k - 1
         for j in range(il, len(self.discret_values) - 1):
+            if self.th_strategy == LimitStrategy.AverageBased:
+                th_next = max(0, np.floor(k - self._sumF[j + 1] + 0.5))
             # we cannot exceed the threshold number of submission
-            if k < 1:
+            if th_next < 0:
                 break
             # makespan with checkpointing the last sequence (delta = 1)
             if self.CRstrategy != CRStrategy.NeverCheckpoint:
                 makespan = self.makespan_with_checkpoint(ic, il, j, R)
-                idx = self._E_index[(j + 1, j + 1)][k - 1]
+                idx = self._E_index[(j + 1, j + 1)][th_next]
                 makespan += self._E[(j + 1, j + 1)][idx][0]
                 if min_makespan >= makespan:
                     min_makespan = makespan
@@ -815,7 +821,7 @@ class LimitedSequence(DefaultRequests):
             # makespan without checkpointing the last sequence (delta = 0)
             if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
                 makespan = self.makespan_no_checkpoint(ic, il, j, R)
-                idx = self._E_index[(ic, j + 1)][k - 1]
+                idx = self._E_index[(ic, j + 1)][th_next]
                 makespan += self._E[(ic, j + 1)][idx][0]
                 if min_makespan >= makespan:
                     min_makespan = makespan
@@ -825,7 +831,7 @@ class LimitedSequence(DefaultRequests):
         self.add_element_in_E(
             (ic, il), (min_makespan, min_request, min_delta), k)
 
-    def compute_E_adaptive(self, first):
+    def compute_E_threshold(self, first):
         th = self.threshold
         for ic in range(len(self.discret_values) - 1, -1, -1):
             for k in range(max(0, th - len(self.discret_values)), th):
@@ -850,6 +856,33 @@ class LimitedSequence(DefaultRequests):
         idx = self._E_index[first][th]
         return self._E[first][idx]
 
+    def compute_E_average(self, first):
+        th = self.threshold
+        for ic in range(len(self.discret_values) - 1, -1, -1):
+            for k in range(0, len(self.discret_values)):
+                idx = (ic, len(self.discret_values) - 1)
+                self.add_element_in_E(idx, (self._beta * self._sumFV,
+                                            len(self.discret_values) - 1, 0),
+                                      k)
+        for il in range(len(self.discret_values) - 2, 0, -1):
+            R = self.CR.get_restart_time(self.discret_values[il])
+            if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
+                for ic in range(il, 0, -1):
+                    for k in range(0, th + 1):
+                        if (ic, il) in self._E and k in self._E_index[(ic, il)]:
+                            continue
+                        self.compute_E(ic, il, R, k)
+            if self.CRstrategy == CRStrategy.AlwaysCheckpoint:
+                for k in range(0, th + 1):
+                    self.compute_E(il, il, R, k)
+            if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
+                for k in range(0, th + 1):
+                    self.compute_E(0, il, 0, k)
+
+        self.compute_E(0, 0, 0, th)
+        idx = self._E_index[first][th]
+        return self._E[first][idx]
+
     def compute_request_sequence(self):
         if len(self._request_sequence) > 0:
             return self._request_sequence
@@ -864,7 +897,10 @@ class LimitedSequence(DefaultRequests):
                 (self.discret_values[E_val[1]] - already_compute, E_val[2]))
             ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
             il = E_val[1] + 1
-            th -= 1
+            if self.th_strategy == LimitStrategy.AverageBased:
+                th = max(0, np.floor(th - self._sumF[il] + 0.5))
+            else:
+                th -= 1
             if E_val[2] == 1:
                 already_compute = self.discret_values[E_val[1]]
             idx = self._E_index[(ic, il)][th]
