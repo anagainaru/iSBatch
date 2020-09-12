@@ -806,7 +806,7 @@ class LimitedSequence(DefaultRequests):
             if self.th_strategy == LimitStrategy.AverageBased:
                 th_next = max(0, np.floor(k - self._sumF[j + 1] + 0.5))
             # we cannot exceed the threshold number of submission
-            if th_next <= 0:
+            if th_next < 0:
                 break
             # makespan with checkpointing the last sequence (delta = 1)
             if self.CRstrategy != CRStrategy.NeverCheckpoint:
@@ -856,44 +856,29 @@ class LimitedSequence(DefaultRequests):
         idx = self._E_index[first][th]
         return self._E[first][idx]
 
-    def __compute_current_threshold(self, th, res):
-        cur_th = th
-        for i in res:
-            cur_th = np.floor(cur_th - self._sumF[i + 1] + 0.5)
-        return cur_th
-
-    def __create_k_list(self, n, th):
-        k_list = []
-        for total_elements in range(1, n):
-            for res in itertools.combinations(list(range(1, n)),
-                                              total_elements):
-                # only keep the entries with submissions below the limit
-                cur_th = self.__compute_current_threshold(th, res)
-                if cur_th <= 0:
-                    continue
-                k_list.append((res, cur_th))
-                print(res)
-        k_list = sorted(k_list, key=lambda e: (max(e[0]), sum(e[0])),
-                        reverse=True)
-        return k_list
-
     def compute_E_average(self, first):
         th = self.threshold
         for ic in range(len(self.discret_values) - 1, -1, -1):
-            #for k in range(max(0, th - len(self.discret_values)), th):
             for k in range(0, len(self.discret_values)):
                 idx = (ic, len(self.discret_values) - 1)
                 self.add_element_in_E(idx, (self._beta * self._sumFV,
                                             len(self.discret_values) - 1, 0),
                                       k)
-        k_list = self.__create_k_list(len(self.discret_values) - 1,
-                                      self.threshold)
-        for k in k_list:
-            #for il in range(max(k[0]), -1, -1):
-            il = max(k[0])
+        for il in range(len(self.discret_values) - 2, 0, -1):
             R = self.CR.get_restart_time(self.discret_values[il])
-            for ic in reversed(k[0]):
-                self.compute_E(ic, il, R, k[1])
+            if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
+                for ic in range(il, 0, -1):
+                    for k in range(0, th + 1):
+                        if (ic, il) in self._E and k in self._E_index[(ic, il)]:
+                            continue
+                        self.compute_E(ic, il, R, k)
+            if self.CRstrategy == CRStrategy.AlwaysCheckpoint:
+                for k in range(0, th + 1):
+                    self.compute_E(il, il, R, k)
+            if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
+                for k in range(0, th + 1):
+                    self.compute_E(0, il, 0, k)
+
         self.compute_E(0, 0, 0, th)
         idx = self._E_index[first][th]
         return self._E[first][idx]
@@ -912,7 +897,10 @@ class LimitedSequence(DefaultRequests):
                 (self.discret_values[E_val[1]] - already_compute, E_val[2]))
             ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
             il = E_val[1] + 1
-            th -= 1
+            if self.th_strategy == LimitStrategy.AverageBased:
+                th = max(0, np.floor(th - self._sumF[il] + 0.5))
+            else:
+                th -= 1
             if E_val[2] == 1:
                 already_compute = self.discret_values[E_val[1]]
             idx = self._E_index[(ic, il)][th]
