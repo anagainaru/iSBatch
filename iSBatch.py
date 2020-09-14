@@ -748,16 +748,18 @@ class LimitedSequence(DefaultRequests):
         self.th_strategy = params[1]
         self.CRstrategy = params[0]
         self.CR = cluster_cost.checkpoint_memory_model
-        if self.threshold == 0:
-            E_val = (1, len(self.discret_values) - 1, 0)
-            self._E[(0,0)] = []
-            self._E[(0,0)].append(E_val)
-            self._E_index[(0, 0)] = {0: 0}
-        else:
-            if self.th_strategy == LimitStrategy.ThresholdBased:
-                E_val = self.compute_E_threshold((0, 0))
+        if self.th_strategy == LimitStrategy.ThresholdBased:
+            if self.threshold == 0:
+                E_val = (1, len(self.discret_values) - 1, 0)
+                self._E[(0,0)] = []
+                self._E[(0,0)].append(E_val)
+                self._E_index[(0, 0)] = {0: 0}
             else:
-                E_val = self.compute_E_average((0, 0))
+                self.threshold = int(np.floor(self.threshold))
+                E_val = self.compute_E_threshold((0, 0))
+        else:
+            self.threshold = int(np.floor(self.threshold + 0.5))
+            E_val = self.compute_E_average((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
 
