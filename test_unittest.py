@@ -232,22 +232,39 @@ class TestLimitedSequence(unittest.TestCase):
         with self.assertRaises(AssertionError):
             sequence = wl.compute_request_sequence()
 
+    def get_average_fails(self, sequence, history):
+        fails = 0
+        for i in history:
+            fails += (1 + sum([1 for seq in sequence if seq[0] < i]))
+        return fails / len(history)
+
     def limited_submission(self, limit, strategy):
         history = np.loadtxt('examples/logs/truncnorm.in', delimiter=' ')
         params = rqs.ResourceParameters()
         params.submissions_limit = limit
         params.submissions_limit_strategy = strategy
         params.CR_strategy = rqs.CRStrategy.NeverCheckpoint
+        if strategy == rqs.LimitStrategy.AverageBased:
+            params.resource_discretization = 10
         wl = rqs.ResourceEstimator(history, params=params)
-        sequence1 = wl.compute_request_sequence()
+        sequence = wl.compute_request_sequence()
+        submissions1 = len(sequence)
+        if strategy == rqs.LimitStrategy.AverageBased:
+            submissions1 = self.get_average_fails(sequence, history)
         params.CR_strategy = rqs.CRStrategy.AlwaysCheckpoint
         wl = rqs.ResourceEstimator(history, params=params)
-        sequence2 = wl.compute_request_sequence()
+        sequence = wl.compute_request_sequence()
+        submissions2 = len(sequence)
+        if strategy == rqs.LimitStrategy.AverageBased:
+            submissions2 = self.get_average_fails(sequence, history)
         params.CR_strategy = rqs.CRStrategy.AdaptiveCheckpoint
-        params.resource_discretization = 50
+        params.resource_discretization = 10
         wl = rqs.ResourceEstimator(history, params=params)
-        sequence3 = wl.compute_request_sequence()
-        return [len(sequence1), len(sequence2), len(sequence3)]
+        sequence = wl.compute_request_sequence()
+        submissions3 = len(sequence)
+        if strategy == rqs.LimitStrategy.AverageBased:
+            submissions3 = self.get_average_fails(sequence, history)
+        return [submissions1, submissions2, submissions3]
 
     @ignore_warnings
     def test_thredhold_limit(self):
@@ -256,6 +273,12 @@ class TestLimitedSequence(unittest.TestCase):
         self.assertTrue(all(n <= 1 for n in sequence_lens))
         sequence_lens = self.limited_submission(
                 2, rqs.LimitStrategy.ThresholdBased)
+        self.assertTrue(all(n <= 2 for n in sequence_lens))
+
+    @ignore_warnings
+    def test_average_limit(self):
+        sequence_lens = self.limited_submission(
+                1.5, rqs.LimitStrategy.AverageBased)
         self.assertTrue(all(n <= 2 for n in sequence_lens))
 
 
