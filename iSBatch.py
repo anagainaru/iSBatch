@@ -742,21 +742,25 @@ class LimitedSequence(DefaultRequests):
             discrete_values, cdf_values, cluster_cost)
         self._E_index = {}
 
-        assert (params[2] > 0), "Invalid bound for the submissions"
         assert (len(params)>=3), "Not enough parameters provided"
-        self.threshold = params[2] - 1
+        self.threshold = params[2]
+        assert (self.threshold >= 1), "Invalid submission limit (< 1)"
+        self.th_precision = 2
         self.th_strategy = params[1]
         self.CRstrategy = params[0]
         self.CR = cluster_cost.checkpoint_memory_model
-        if self.threshold == 0:
+        if self.threshold == 1:
             E_val = (1, len(self.discret_values) - 1, 0)
             self._E[(0,0)] = []
             self._E[(0,0)].append(E_val)
-            self._E_index[(0, 0)] = {0: 0}
+            self._E_index[(0, 0)] = {1: 0}
         else:
             if self.th_strategy == LimitStrategy.ThresholdBased:
+                self.threshold = int(np.floor(self.threshold))
                 E_val = self.compute_E_threshold((0, 0))
             else:
+                self.threshold = int(
+                    np.floor(self.threshold * self.th_precision + 0.5))
                 E_val = self.compute_E_average((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
@@ -804,7 +808,8 @@ class LimitedSequence(DefaultRequests):
         th_next = k - 1
         for j in range(il, len(self.discret_values) - 1):
             if self.th_strategy == LimitStrategy.AverageBased:
-                th_next = max(0, np.floor(k - self._sumF[j + 1] + 0.5))
+                th_next = max(0, np.floor(
+                    k - self._sumF[j + 1] * self.th_precision + 0.5))
             # we cannot exceed the threshold number of submission
             if th_next < 0:
                 break
@@ -815,7 +820,7 @@ class LimitedSequence(DefaultRequests):
                 makespan += self._E[(j + 1, j + 1)][idx][0]
                 if min_makespan >= makespan:
                     min_makespan = makespan
-                    min_request = j
+                    min_request = j + 1
                     min_delta = 1
 
             # makespan without checkpointing the last sequence (delta = 0)
@@ -825,7 +830,7 @@ class LimitedSequence(DefaultRequests):
                 makespan += self._E[(ic, j + 1)][idx][0]
                 if min_makespan >= makespan:
                     min_makespan = makespan
-                    min_request = j
+                    min_request = j + 1
                     min_delta = 0
 
         self.add_element_in_E(
@@ -859,7 +864,7 @@ class LimitedSequence(DefaultRequests):
     def compute_E_average(self, first):
         th = self.threshold
         for ic in range(len(self.discret_values) - 1, -1, -1):
-            for k in range(0, len(self.discret_values)):
+            for k in range(0, len(self.discret_values) * self.th_precision):
                 idx = (ic, len(self.discret_values) - 1)
                 self.add_element_in_E(idx, (self._beta * self._sumFV,
                                             len(self.discret_values) - 1, 0),
@@ -898,7 +903,8 @@ class LimitedSequence(DefaultRequests):
             ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
             il = E_val[1] + 1
             if self.th_strategy == LimitStrategy.AverageBased:
-                th = max(0, np.floor(th - self._sumF[il] + 0.5))
+                th = max(0, np.floor(
+                    th - self._sumF[il] * self.th_precision + 0.5))
             else:
                 th -= 1
             if E_val[2] == 1:
@@ -907,7 +913,7 @@ class LimitedSequence(DefaultRequests):
             E_val = self._E[(ic, il)][idx]
 
         self._request_sequence.append(
-            (self.discret_values[E_val[1]] - already_compute, E_val[2]))
+            (self.discret_values[E_val[1]] - already_compute, 0))
         return self._request_sequence
 
 # -------------
