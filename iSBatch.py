@@ -820,7 +820,7 @@ class LimitedSequence(DefaultRequests):
                 makespan += self._E[(j + 1, j + 1)][idx][0]
                 if min_makespan >= makespan:
                     min_makespan = makespan
-                    min_request = j
+                    min_request = j + 1
                     min_delta = 1
 
             # makespan without checkpointing the last sequence (delta = 0)
@@ -830,7 +830,7 @@ class LimitedSequence(DefaultRequests):
                 makespan += self._E[(ic, j + 1)][idx][0]
                 if min_makespan >= makespan:
                     min_makespan = makespan
-                    min_request = j
+                    min_request = j + 1
                     min_delta = 0
 
         self.add_element_in_E(
@@ -913,7 +913,7 @@ class LimitedSequence(DefaultRequests):
             E_val = self._E[(ic, il)][idx]
 
         self._request_sequence.append(
-            (self.discret_values[E_val[1]] - already_compute, E_val[2]))
+            (self.discret_values[E_val[1]] - already_compute, 0))
         return self._request_sequence
 
 # -------------
