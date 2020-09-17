@@ -759,7 +759,8 @@ class LimitedSequence(DefaultRequests):
                 self.threshold = int(np.floor(self.threshold))
                 E_val = self.compute_E_threshold((0, 0))
             else:
-                self.threshold = round(self.threshold * self.th_precision)
+                self.threshold = int(
+                    round(self.threshold * self.th_precision))
                 E_val = self.compute_E_average((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
@@ -807,8 +808,8 @@ class LimitedSequence(DefaultRequests):
         th_next = k - 1
         for j in range(il, len(self.discret_values) - 1):
             if self.th_strategy == LimitStrategy.AverageBased:
-                th_next = max(0, round(
-                    k - self._sumF[j + 1] * self.th_precision))
+                th_next = max(0, int(round(
+                    k - self._sumF[j + 1] * self.th_precision)))
             # we cannot exceed the threshold number of submission
             if th_next < 0:
                 break
@@ -879,9 +880,9 @@ class LimitedSequence(DefaultRequests):
     def initialize_average_E(self):
         th = self.threshold
         for il in range(len(self.discret_values) - 1, -1, -1):
-            startk = round(self._sumF[il + 1] * th * \
-                           (len(self.discret_values) - il))
-            for k in range(startk, round(th * self.th_precision) + 1):
+            startk = int(round(self._sumF[il + 1] * th * \
+                           (len(self.discret_values) - il)))
+            for k in range(startk, int(round(th * self.th_precision) + 1)):
                 if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
                     for ic in range(il, 0, -1):
                         self.add_element_in_E(
@@ -933,8 +934,8 @@ class LimitedSequence(DefaultRequests):
             ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
             il = E_val[1] + 1
             if self.th_strategy == LimitStrategy.AverageBased:
-                th = max(0, round(
-                    th - self._sumF[il] * self.th_precision))
+                th = max(0, int(round(
+                    th - self._sumF[il] * self.th_precision)))
             else:
                 th -= 1
             if E_val[2] == 1:
