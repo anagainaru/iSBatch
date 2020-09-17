@@ -232,11 +232,19 @@ class TestLimitedSequence(unittest.TestCase):
         with self.assertRaises(AssertionError):
             sequence = wl.compute_request_sequence()
 
-    def get_average_fails(self, sequence, history):
-        fails = 0
+    def get_average_submissions(self, sequence, history):
+        submissions = 0
         for i in history:
-            fails += (1 + sum([1 for seq in sequence if seq[0] < i]))
-        return fails / len(history)
+            compute = 0
+            for s in sequence:
+                if i > s[0] + compute:
+                    submissions += 1
+                # if the application was checkpointed
+                if s[1] == 1:
+                    compute += s[0]
+            # add the successful run
+            submissions += 1
+        return submissions / len(history)
 
     def limited_submission(self, limit, strategy):
         history = np.loadtxt('examples/logs/truncnorm.in', delimiter=' ')
@@ -250,20 +258,20 @@ class TestLimitedSequence(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         submissions1 = len(sequence)
         if strategy == rqs.LimitStrategy.AverageBased:
-            submissions1 = self.get_average_fails(sequence, history)
+            submissions1 = self.get_average_submissions(sequence, history)
         params.CR_strategy = rqs.CRStrategy.AlwaysCheckpoint
         wl = rqs.ResourceEstimator(history, params=params)
         sequence = wl.compute_request_sequence()
         submissions2 = len(sequence)
         if strategy == rqs.LimitStrategy.AverageBased:
-            submissions2 = self.get_average_fails(sequence, history)
+            submissions2 = self.get_average_submissions(sequence, history)
         params.CR_strategy = rqs.CRStrategy.AdaptiveCheckpoint
         params.resource_discretization = 10
         wl = rqs.ResourceEstimator(history, params=params)
         sequence = wl.compute_request_sequence()
         submissions3 = len(sequence)
         if strategy == rqs.LimitStrategy.AverageBased:
-            submissions3 = self.get_average_fails(sequence, history)
+            submissions3 = self.get_average_submissions(sequence, history)
         return [submissions1, submissions2, submissions3]
 
     @ignore_warnings

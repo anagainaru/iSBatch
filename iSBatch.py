@@ -760,7 +760,7 @@ class LimitedSequence(DefaultRequests):
                 E_val = self.compute_E_threshold((0, 0))
             else:
                 self.threshold = int(
-                    np.floor(self.threshold * self.th_precision + 0.5))
+                    round(self.threshold * self.th_precision))
                 E_val = self.compute_E_average((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
@@ -808,8 +808,8 @@ class LimitedSequence(DefaultRequests):
         th_next = k - 1
         for j in range(il, len(self.discret_values) - 1):
             if self.th_strategy == LimitStrategy.AverageBased:
-                th_next = max(0, np.floor(
-                    k - self._sumF[j + 1] * self.th_precision + 0.5))
+                th_next = max(0, int(round(
+                    k - self._sumF[j + 1] * self.th_precision)))
             # we cannot exceed the threshold number of submission
             if th_next < 0:
                 break
@@ -836,14 +836,30 @@ class LimitedSequence(DefaultRequests):
         self.add_element_in_E(
             (ic, il), (min_makespan, min_request, min_delta), k)
 
+    def initialize_threshold_E(self):
+        th = self.threshold
+        for k in range(max(0, th - len(self.discret_values)), th):
+            if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
+                for ic in range(len(self.discret_values) - 1, -1, -1):
+                    idx = (ic, len(self.discret_values) - 1)
+                    self.add_element_in_E(
+                        idx, (self._beta * self._sumFV,
+                              len(self.discret_values) - 1, 0), k)
+            if self.CRstrategy == CRStrategy.AlwaysCheckpoint:
+                idx = (len(self.discret_values) - 1,
+                       len(self.discret_values) - 1)
+                self.add_element_in_E(
+                    idx, (self._beta * self._sumFV,
+                          len(self.discret_values) - 1, 0), k)
+            if self.CRstrategy == CRStrategy.NeverCheckpoint:
+                idx = (0, len(self.discret_values) - 1)
+                self.add_element_in_E(
+                    idx, (self._beta * self._sumFV,
+                          len(self.discret_values) - 1, 0), k)
+
     def compute_E_threshold(self, first):
         th = self.threshold
-        for ic in range(len(self.discret_values) - 1, -1, -1):
-            for k in range(max(0, th - len(self.discret_values)), th):
-                idx = (ic, len(self.discret_values) - 1)
-                self.add_element_in_E(idx, (self._beta * self._sumFV,
-                                            len(self.discret_values) - 1, 0),
-                                      k)
+        self.initialize_threshold_E()
         for il in range(len(self.discret_values) - 2, -1, -1):
             R = self.CR.get_restart_time(self.discret_values[il])
             for k in range(max(0, th - il), th):
@@ -861,14 +877,29 @@ class LimitedSequence(DefaultRequests):
         idx = self._E_index[first][th]
         return self._E[first][idx]
 
+    def initialize_average_E(self):
+        th = self.threshold
+        for il in range(len(self.discret_values) - 1, -1, -1):
+            startk = int(round(self._sumF[il + 1] * th * \
+                           (len(self.discret_values) - il)))
+            for k in range(startk, int(round(th * self.th_precision) + 1)):
+                if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
+                    for ic in range(il, 0, -1):
+                        self.add_element_in_E(
+                            (ic, il), (self._beta * self._sumFV,
+                                       len(self.discret_values) - 1, 0), k)
+                if self.CRstrategy == CRStrategy.AlwaysCheckpoint:
+                    self.add_element_in_E(
+                        (il, il), (self._beta * self._sumFV,
+                                   len(self.discret_values) - 1, 0), k)
+                if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
+                    self.add_element_in_E(
+                        (0, il), (self._beta * self._sumFV,
+                                  len(self.discret_values) - 1, 0), k)
+
     def compute_E_average(self, first):
         th = self.threshold
-        for ic in range(len(self.discret_values) - 1, -1, -1):
-            for k in range(0, len(self.discret_values) * self.th_precision):
-                idx = (ic, len(self.discret_values) - 1)
-                self.add_element_in_E(idx, (self._beta * self._sumFV,
-                                            len(self.discret_values) - 1, 0),
-                                      k)
+        self.initialize_average_E()
         for il in range(len(self.discret_values) - 2, 0, -1):
             R = self.CR.get_restart_time(self.discret_values[il])
             if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
@@ -903,8 +934,8 @@ class LimitedSequence(DefaultRequests):
             ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
             il = E_val[1] + 1
             if self.th_strategy == LimitStrategy.AverageBased:
-                th = max(0, np.floor(
-                    th - self._sumF[il] * self.th_precision + 0.5))
+                th = max(0, int(round(
+                    th - self._sumF[il] * self.th_precision)))
             else:
                 th -= 1
             if E_val[2] == 1:
