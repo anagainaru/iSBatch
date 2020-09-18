@@ -252,7 +252,7 @@ class ResourceEstimator():
 
         if self.params.CR_strategy == CRStrategy.AdaptiveCheckpoint:
             warnings.warn("Warning! The adaptive CR strategy has high " \
-                          "complexity. Expect large run times.")
+                          "complexity. Expect large run times.", stacklevel=2)
         if self.params.submissions_limit is not None:
             return LimitedSequence, (self.params.CR_strategy,
                                      self.params.submissions_limit_strategy,
@@ -341,7 +341,8 @@ class ResourceEstimator():
         if len(cdf) < 100:
             warnings.warn("Warning! Sequence is computed based on only" \
                           "%d elements. It is recommended to " \
-                          "increase the discretization value." %(len(cdf)))
+                          "increase the discretization value." %(len(cdf)),
+                          stacklevel=2)
         handler = sequence_type(discrete_data, cdf,
                                 cluster_cost, params=params)
         return handler.compute_request_sequence()
