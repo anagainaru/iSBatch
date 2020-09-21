@@ -600,10 +600,13 @@ class RequestSequence(DefaultRequests):
             j = E_val[1] + 1
             E_val = self.compute_E_value(j)
 
-        self._request_sequence.append(
-            (self.discret_values[E_val[1]], E_val[2]))
-        if self._request_sequence[-1][0] != self.upper_limit:
+        if self.discret_values[E_val[1]] != self.upper_limit:
+            self._request_sequence.append(
+                (self.discret_values[E_val[1]], E_val[2]))
             self._request_sequence.append((self.upper_limit, 0))
+        else:
+            self._request_sequence.append(
+                (self.discret_values[E_val[1]], 0))
 
         return self._request_sequence
 
@@ -689,7 +692,7 @@ class CheckpointSequence(DefaultRequests):
             E_val = self.compute_E_value((ic, il))
 
         self._request_sequence.append(
-            (self.discret_values[E_val[1]] - already_compute, E_val[2]))
+            (self.discret_values[E_val[1]] - already_compute, 0))
         return self._request_sequence
 
 
