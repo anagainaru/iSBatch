@@ -883,9 +883,9 @@ class LimitedSequence(DefaultRequests):
         for il in range(len(self.discret_values), -1, -1):
             startk = int(round(self._sumF[il] * th * \
                            (len(self.discret_values) - il)))
-            for k in range(startk, int(round(th * self.th_precision) + 1)):
+            for k in range(startk, th + 1):
                 if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
-                    for ic in range(il, 0, -1):
+                    for ic in range(il, -1, -1):
                         self.add_element_in_E(
                             (ic, il), (self._beta * self._sumFV,
                                        len(self.discret_values) - 1, 0), k)
@@ -893,7 +893,7 @@ class LimitedSequence(DefaultRequests):
                     self.add_element_in_E(
                         (il, il), (self._beta * self._sumFV,
                                    len(self.discret_values) - 1, 0), k)
-                if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
+                if self.CRstrategy == CRStrategy.NeverCheckpoint:
                     self.add_element_in_E(
                         (0, il), (self._beta * self._sumFV,
                                   len(self.discret_values) - 1, 0), k)
@@ -907,15 +907,15 @@ class LimitedSequence(DefaultRequests):
             R = self.CR.get_restart_time(self.discret_values[il])
             if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
                 for ic in range(il, 0, -1):
-                    for k in range(0, th + 1):
+                    for k in range(0, endk):
                         if (ic, il) in self._E and k in self._E_index[(ic, il)]:
                             continue
                         self.compute_E(ic, il, R, k)
             if self.CRstrategy == CRStrategy.AlwaysCheckpoint:
-                for k in range(0, th + 1):
+                for k in range(0, endk):
                     self.compute_E(il, il, R, k)
             if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
-                for k in range(0, th + 1):
+                for k in range(0, endk):
                     self.compute_E(0, il, 0, k)
 
         self.compute_E(0, 0, 0, th)
