@@ -816,7 +816,7 @@ class LimitedSequence(DefaultRequests):
                     k - self._sumF[j + 1] * self.th_precision)))
             # we cannot exceed the threshold number of submission
             if th_next < 0:
-                break
+                continue
             # makespan with checkpointing the last sequence (delta = 1)
             if self.CRstrategy != CRStrategy.NeverCheckpoint:
                 makespan = self.makespan_with_checkpoint(ic, il, j, R)
