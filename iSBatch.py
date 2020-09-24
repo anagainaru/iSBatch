@@ -749,7 +749,7 @@ class LimitedSequence(DefaultRequests):
         assert (len(params)>=3), "Not enough parameters provided"
         self.threshold = params[2]
         assert (self.threshold >= 1), "Invalid submission limit (< 1)"
-        self.th_precision = 2
+        self.th_precision = 10
         self.th_strategy = params[1]
         self.CRstrategy = params[0]
         self.CR = cluster_cost.checkpoint_memory_model
@@ -812,8 +812,8 @@ class LimitedSequence(DefaultRequests):
         th_next = k - 1
         for j in range(il, len(self.discret_values)):
             if self.th_strategy == LimitStrategy.AverageBased:
-                th_next = max(0, int(round(
-                    k - self._sumF[j + 1] * self.th_precision)))
+                th_next = int(round(
+                    k - self._sumF[j + 1] * self.th_precision))
             # we cannot exceed the threshold number of submission
             if th_next < 0:
                 continue
