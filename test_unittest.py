@@ -247,13 +247,12 @@ class TestLimitedSequence(unittest.TestCase):
         return submissions / len(history)
 
     def limited_submission(self, limit, strategy):
-        history = np.loadtxt('examples/logs/truncnorm.in', delimiter=' ')
+        history = np.loadtxt('examples/logs/CT_eye_segmentation.log',
+                             delimiter=' ')
         params = rqs.ResourceParameters()
         params.submissions_limit = limit
         params.submissions_limit_strategy = strategy
         params.CR_strategy = rqs.CRStrategy.NeverCheckpoint
-        if strategy == rqs.LimitStrategy.AverageBased:
-            params.resource_discretization = 10
         wl = rqs.ResourceEstimator(history, params=params)
         sequence = wl.compute_request_sequence()
         submissions1 = len(sequence)
@@ -266,13 +265,7 @@ class TestLimitedSequence(unittest.TestCase):
         if strategy == rqs.LimitStrategy.AverageBased:
             submissions2 = self.get_average_submissions(sequence, history)
         params.CR_strategy = rqs.CRStrategy.AdaptiveCheckpoint
-        params.resource_discretization = 10
-        wl = rqs.ResourceEstimator(history, params=params)
-        sequence = wl.compute_request_sequence()
-        submissions3 = len(sequence)
-        if strategy == rqs.LimitStrategy.AverageBased:
-            submissions3 = self.get_average_submissions(sequence, history)
-        return [submissions1, submissions2, submissions3]
+        return [submissions1, submissions2]
 
     @ignore_warnings
     def test_thredhold_limit(self):
