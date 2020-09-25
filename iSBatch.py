@@ -749,23 +749,23 @@ class LimitedSequence(DefaultRequests):
         assert (len(params)>=3), "Not enough parameters provided"
         self.threshold = params[2]
         assert (self.threshold >= 1), "Invalid submission limit (< 1)"
-        self.th_precision = 2
+        self.th_precision = 10
         self.th_strategy = params[1]
         self.CRstrategy = params[0]
         self.CR = cluster_cost.checkpoint_memory_model
         if self.threshold == 1:
             E_val = (1, len(self.discret_values) - 1, 0)
-            self._E[(0,0)] = []
-            self._E[(0,0)].append(E_val)
-            self._E_index[(0, 0)] = {1: 0}
+            self._E[(-1, -1)] = []
+            self._E[(-1, -1)].append(E_val)
+            self._E_index[(-1, -1)] = {1: 0}
         else:
             if self.th_strategy == LimitStrategy.ThresholdBased:
                 self.threshold = int(np.floor(self.threshold))
-                E_val = self.compute_E_threshold((0, 0))
+                E_val = self.compute_E_threshold()
             else:
                 self.threshold = int(
                     round(self.threshold * self.th_precision))
-                E_val = self.compute_E_average((0, 0))
+                E_val = self.compute_E_average()
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
 
@@ -810,18 +810,18 @@ class LimitedSequence(DefaultRequests):
         min_request = -1
         min_delta = 0
         th_next = k - 1
-        for j in range(il, len(self.discret_values)):
+        for j in range(il + 1, len(self.discret_values)):
             if self.th_strategy == LimitStrategy.AverageBased:
-                th_next = max(0, int(round(
-                    k - self._sumF[j + 1] * self.th_precision)))
+                th_next = k - int(round(
+                    self._sumF[j + 1] * self.th_precision))
             # we cannot exceed the threshold number of submission
             if th_next < 0:
-                break
+                continue
             # makespan with checkpointing the last sequence (delta = 1)
             if self.CRstrategy != CRStrategy.NeverCheckpoint:
                 makespan = self.makespan_with_checkpoint(ic, il, j, R)
-                idx = self._E_index[(j + 1, j + 1)][th_next]
-                makespan += self._E[(j + 1, j + 1)][idx][0]
+                idx = self._E_index[(j, j)][th_next]
+                makespan += self._E[(j, j)][idx][0]
                 if min_makespan >= makespan:
                     min_makespan = makespan
                     min_request = j
@@ -830,8 +830,8 @@ class LimitedSequence(DefaultRequests):
             # makespan without checkpointing the last sequence (delta = 0)
             if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
                 makespan = self.makespan_no_checkpoint(ic, il, j, R)
-                idx = self._E_index[(ic, j + 1)][th_next]
-                makespan += self._E[(ic, j + 1)][idx][0]
+                idx = self._E_index[(ic, j)][th_next]
+                makespan += self._E[(ic, j)][idx][0]
                 if min_makespan >= makespan:
                     min_makespan = makespan
                     min_request = j
@@ -842,53 +842,53 @@ class LimitedSequence(DefaultRequests):
 
     def initialize_threshold_E(self):
         th = self.threshold
-        for k in range(max(0, th - len(self.discret_values)), th):
+        for k in range(max(0, th - len(self.discret_values)), th + 1):
             if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
-                for ic in range(len(self.discret_values), -1, -1):
-                    idx = (ic, len(self.discret_values))
+                for ic in range(len(self.discret_values) - 1, -2, -1):
+                    idx = (ic, len(self.discret_values) - 1)
                     self.add_element_in_E(
                         idx, (self._beta * self._sumFV,
                               len(self.discret_values) - 1, 0), k)
             if self.CRstrategy == CRStrategy.AlwaysCheckpoint:
-                idx = (len(self.discret_values),
-                       len(self.discret_values))
+                idx = (len(self.discret_values) - 1,
+                       len(self.discret_values) - 1)
                 self.add_element_in_E(
                     idx, (self._beta * self._sumFV,
                           len(self.discret_values) - 1, 0), k)
             if self.CRstrategy == CRStrategy.NeverCheckpoint:
-                idx = (0, len(self.discret_values))
+                idx = (-1, len(self.discret_values) - 1)
                 self.add_element_in_E(
                     idx, (self._beta * self._sumFV,
                           len(self.discret_values) - 1, 0), k)
 
-    def compute_E_threshold(self, first):
+    def compute_E_threshold(self):
         th = self.threshold
         self.initialize_threshold_E()
-        for il in range(len(self.discret_values) - 1, -1, -1):
+        for il in range(len(self.discret_values) - 2, -1, -1):
             R = self.CR.get_restart_time(self.discret_values[il])
-            for k in range(max(0, th - il), th):
+            for k in range(max(0, th - il - 1), th + 1):
                 if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
-                    for ic in range(il, 0, -1):
+                    for ic in range(il, -1, -1):
                         if (ic, il) in self._E and k in self._E_index[(ic, il)]:
                             continue
                         self.compute_E(ic, il, R, k)
                 if self.CRstrategy == CRStrategy.AlwaysCheckpoint:
                     self.compute_E(il, il, R, k)
                 if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
-                    self.compute_E(0, il, 0, k)
+                    self.compute_E(-1, il, 0, k)
 
-        self.compute_E(0, 0, 0, th)
-        idx = self._E_index[first][th]
-        return self._E[first][idx]
+        self.compute_E(-1, -1, 0, th)
+        idx = self._E_index[(-1, -1)][th]
+        return self._E[(-1, -1)][idx]
 
     def initialize_average_E(self):
         th = self.threshold
-        for il in range(len(self.discret_values), -1, -1):
-            startk = int(round(self._sumF[il] * th * \
+        for il in range(len(self.discret_values) - 1, -1, -1):
+            startk = int(round(self._sumF[il + 1] * th * \
                            (len(self.discret_values) - il)))
             for k in range(startk, th + 1):
                 if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
-                    for ic in range(il, -1, -1):
+                    for ic in range(il, -2, -1):
                         self.add_element_in_E(
                             (ic, il), (self._beta * self._sumFV,
                                        len(self.discret_values) - 1, 0), k)
@@ -898,18 +898,18 @@ class LimitedSequence(DefaultRequests):
                                    len(self.discret_values) - 1, 0), k)
                 if self.CRstrategy == CRStrategy.NeverCheckpoint:
                     self.add_element_in_E(
-                        (0, il), (self._beta * self._sumFV,
+                        (-1, il), (self._beta * self._sumFV,
                                   len(self.discret_values) - 1, 0), k)
 
-    def compute_E_average(self, first):
+    def compute_E_average(self):
         th = self.threshold
         self.initialize_average_E()
-        for il in range(len(self.discret_values) - 1, 0, -1):
-            endk = min(th, int(round(self._sumF[il] * th * \
+        for il in range(len(self.discret_values) - 2, -1, -1):
+            endk = min(th, int(round(self._sumF[il + 1] * th * \
                              (len(self.discret_values) - il)))) + 1
             R = self.CR.get_restart_time(self.discret_values[il])
             if self.CRstrategy == CRStrategy.AdaptiveCheckpoint:
-                for ic in range(il, 0, -1):
+                for ic in range(il, -1, -1):
                     for k in range(0, endk):
                         if (ic, il) in self._E and k in self._E_index[(ic, il)]:
                             continue
@@ -919,17 +919,17 @@ class LimitedSequence(DefaultRequests):
                     self.compute_E(il, il, R, k)
             if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
                 for k in range(0, endk):
-                    self.compute_E(0, il, 0, k)
+                    self.compute_E(-1, il, 0, k)
 
-        self.compute_E(0, 0, 0, th)
-        idx = self._E_index[first][th]
-        return self._E[first][idx]
+        self.compute_E(-1, -1, 0, th)
+        idx = self._E_index[(-1, -1)][th]
+        return self._E[(-1, -1)][idx]
 
     def compute_request_sequence(self):
         if len(self._request_sequence) > 0:
             return self._request_sequence
-        ic = 0
-        il = 0
+        ic = -1
+        il = -1
         th = self.threshold
         idx = self._E_index[(ic, il)][th]
         E_val = self._E[(ic, il)][idx]
