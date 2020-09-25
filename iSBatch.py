@@ -812,8 +812,8 @@ class LimitedSequence(DefaultRequests):
         th_next = k - 1
         for j in range(il + 1, len(self.discret_values)):
             if self.th_strategy == LimitStrategy.AverageBased:
-                th_next = int(round(
-                    k - self._sumF[j + 1] * self.th_precision))
+                th_next = k - int(round(
+                    self._sumF[j + 1] * self.th_precision))
             # we cannot exceed the threshold number of submission
             if th_next < 0:
                 continue
