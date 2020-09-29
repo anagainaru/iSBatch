@@ -599,8 +599,8 @@ class RequestSequence(DefaultRequests):
             for j in range(i, len(self.discret_values)):
                 makespan = self.makespan_init_value(i, j)
                 makespan += self._E[j + 1][0]
-
-                if min_makespan == -1 or min_makespan >= makespan:
+                next_j = self._E[j + 1][1]
+                if self.update_best_makespan(makespan, min_makespan, i, next_j):
                     min_makespan = makespan
                     min_request = j
             self._E[i] = (min_makespan, min_request, 0)
@@ -662,7 +662,8 @@ class CheckpointSequence(DefaultRequests):
             # makespan with checkpointing the last sequence (delta = 1)
             makespan = self.makespan_init_value(ic, il, j, 1, R)
             makespan += self._E[(j + 1, j + 1)][0]
-            if min_makespan == -1 or min_makespan >= makespan:
+            next_j = self._E[(j + 1, j + 1)][1]
+            if self.update_best_makespan(makespan, min_makespan, il, next_j):
                 min_makespan = makespan
                 min_request = j
                 min_delta = 1
@@ -670,7 +671,8 @@ class CheckpointSequence(DefaultRequests):
             # makespan without checkpointing the last sequence (delta = 0)
             makespan = self.makespan_init_value(ic, il, j, 0, R)
             makespan += self._E[(ic, j + 1)][0]
-            if min_makespan == -1 or min_makespan >= makespan:
+            next_j = self._E[(ic, j + 1)][1]
+            if self.update_best_makespan(makespan, min_makespan, il, next_j):
                 min_makespan = makespan
                 min_request = j
                 min_delta = 0
@@ -697,16 +699,18 @@ class CheckpointSequence(DefaultRequests):
             return self._request_sequence
         ic = 0
         il = 0
-        E_val = self.compute_E_value((ic, il))
+        E_val = self._E[(ic, il)]
         already_compute = 0
         while E_val[1] < len(self.discret_values) - 1:
+            if E_val[1] == -1:
+                break
             self._request_sequence.append(
                 (self.discret_values[E_val[1]] - already_compute, E_val[2]))
             ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
             il = E_val[1] + 1
             if E_val[2] == 1:
                 already_compute = self.discret_values[E_val[1]]
-            E_val = self.compute_E_value((ic, il))
+            E_val = self._E[(ic, il)]
 
         self._request_sequence.append(
             (self.discret_values[E_val[1]] - already_compute, 0))
@@ -724,7 +728,8 @@ class AllCheckpointSequence(CheckpointSequence):
         for j in range(i, len(self.discret_values)):
             makespan = self.makespan_init_value(i, i, j, 1, R)
             makespan += self._E[(j + 1, j + 1)][0]
-            if min_makespan == -1 or min_makespan >= makespan:
+            next_j = self._E[(j + 1, j + 1)][1]
+            if self.update_best_makespan(makespan, min_makespan, i, next_j):
                 min_makespan = makespan
                 min_request = j
 
@@ -840,7 +845,9 @@ class LimitedSequence(DefaultRequests):
                 makespan = self.makespan_with_checkpoint(ic, il, j, R)
                 idx = self._E_index[(j, j)][th_next]
                 makespan += self._E[(j, j)][idx][0]
-                if min_makespan >= makespan:
+                next_j = self._E[(j, j)][idx][1]
+                if self.update_best_makespan(
+                    makespan, min_makespan, il, next_j):
                     min_makespan = makespan
                     min_request = j
                     min_delta = 1
@@ -850,7 +857,9 @@ class LimitedSequence(DefaultRequests):
                 makespan = self.makespan_no_checkpoint(ic, il, j, R)
                 idx = self._E_index[(ic, j)][th_next]
                 makespan += self._E[(ic, j)][idx][0]
-                if min_makespan >= makespan:
+                next_j = self._E[(ic, j)][idx][1]
+                if self.update_best_makespan(
+                    makespan, min_makespan, il, next_j):
                     min_makespan = makespan
                     min_request = j
                     min_delta = 0
@@ -891,8 +900,12 @@ class LimitedSequence(DefaultRequests):
                             continue
                         self.compute_E(ic, il, R, k)
                 if self.CRstrategy == CRStrategy.AlwaysCheckpoint:
+                    if (il, il) in self._E and k in self._E_index[(il, il)]:
+                        continue
                     self.compute_E(il, il, R, k)
                 if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
+                    if (-1, il) in self._E and k in self._E_index[(-1, il)]:
+                        continue
                     self.compute_E(-1, il, 0, k)
 
         self.compute_E(-1, -1, 0, th)
@@ -934,9 +947,13 @@ class LimitedSequence(DefaultRequests):
                         self.compute_E(ic, il, R, k)
             if self.CRstrategy == CRStrategy.AlwaysCheckpoint:
                 for k in range(0, endk):
+                    if (il, il) in self._E and k in self._E_index[(il, il)]:
+                        continue
                     self.compute_E(il, il, R, k)
             if self.CRstrategy != CRStrategy.AlwaysCheckpoint:
                 for k in range(0, endk):
+                    if (-1, il) in self._E and k in self._E_index[(-1, il)]:
+                        continue
                     self.compute_E(-1, il, 0, k)
 
         self.compute_E(-1, -1, 0, th)
