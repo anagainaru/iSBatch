@@ -107,6 +107,7 @@ class ResourceParameters():
     CR_strategy = CRStrategy.NeverCheckpoint
     request_upper_limit = -1
     request_lower_limit = -1
+    request_increment_limit = 0
     submissions_limit = None
     submissions_limit_strategy = LimitStrategy.ThresholdBased
 
@@ -256,13 +257,14 @@ class ResourceEstimator():
         if self.params.submissions_limit is not None:
             return LimitedSequence, (self.params.CR_strategy,
                                      self.params.submissions_limit_strategy,
-                                     self.params.submissions_limit)
+                                     self.params.submissions_limit,
+                                     self.params.request_increment_limit)
         if self.params.CR_strategy == CRStrategy.AdaptiveCheckpoint:
-            return CheckpointSequence, ()
+            return CheckpointSequence, (self.params.request_increment_limit, )
         if self.params.CR_strategy == CRStrategy.AlwaysCheckpoint:
-            return AllCheckpointSequence, ()
+            return AllCheckpointSequence, (self.params.request_increment_limit, )
         # by default return request times when checkpoint is not availabe
-        return RequestSequence, ()
+        return RequestSequence, (self.params.request_increment_limit, )
 
     def __trim_according_to_limits(self, data=[], cdf=[]):
         if len(data) == 0:
@@ -511,10 +513,11 @@ class DefaultRequests():
     an application behavior and system properties '''
 
     def __init__(self, discrete_values, cdf_values,
-                 cluster_cost, params=[]):
+                 cluster_cost, params=0):
         self._alpha = cluster_cost.alpha
         self._beta = cluster_cost.beta
         self._gamma = cluster_cost.gamma
+        self.makespan_increment_limit = params[0]
 
         assert (len(discrete_values) > 0), "Invalid input"
         assert (len(discrete_values) == len(cdf_values)), "Invalid cdf"
@@ -554,15 +557,29 @@ class DefaultRequests():
         self._E[i] = E_val
         return E_val
 
+    def update_best_makespan(self, makespan, min_makespan, j, next_j):
+        # if the new makespan is infinity do not update
+        if makespan == np.inf:
+            return False
+        # if the new makespan is better than the chosen one, update
+        if min_makespan == -1 or min_makespan >= makespan:
+            step = abs(self.discret_values[j] - self.discret_values[next_j])
+            # if the increment exceeds the limit do not update
+            if step < self.makespan_increment_limit:
+                return False
+            return True
+        return False
+
 
 class RequestSequence(DefaultRequests):
     ''' Sequence that optimizes the total makespan of a job for discret
     values (instead of a continuous space) '''
 
     def __init__(self, discrete_values, cdf_values,
-                 cluster_cost, params=[]):
+                 cluster_cost, params=[0]):
 
-        super().__init__(discrete_values, cdf_values, cluster_cost)
+        super().__init__(discrete_values, cdf_values, cluster_cost,
+                         params=params)
         E_val = self.compute_E_value(0)
         self.__t1 = self.discret_values[E_val[1]]
         self.__makespan = E_val[0]
@@ -616,10 +633,10 @@ class CheckpointSequence(DefaultRequests):
     application or system is capable of taking checkpoints '''
 
     def __init__(self, discrete_values, cdf_values,
-                 cluster_cost, params=[]):
+                 cluster_cost, params=[0]):
 
         super().__init__(discrete_values, cdf_values, cluster_cost,
-                         params=[])
+                         params=params)
         self.CR = cluster_cost.checkpoint_memory_model
         E_val = self.compute_E_value((0, 0))
         self.__t1 = self.discret_values[E_val[1]]
@@ -743,10 +760,11 @@ class LimitedSequence(DefaultRequests):
                  cluster_cost, params=[]):
 
         super(LimitedSequence, self).__init__(
-            discrete_values, cdf_values, cluster_cost)
+            discrete_values, cdf_values, cluster_cost,
+            params=[params[3]])
         self._E_index = {}
 
-        assert (len(params)>=3), "Not enough parameters provided"
+        assert (len(params) > 3), "Not enough parameters provided"
         self.threshold = params[2]
         assert (self.threshold >= 1), "Invalid submission limit (< 1)"
         self.th_precision = 10
