@@ -134,6 +134,25 @@ class TestEstimationParameters(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         self.assertTrue(all([i[0] >= 12 and i[0] <= 12.5 for i in sequence]))
 
+    def test_increment_limit(self):
+        history = np.loadtxt("examples/logs/CT_eye_segmentation.log",
+                             delimiter=' ')
+        params = rqs.ResourceParameters()
+        params.request_increment_limit = 1800
+        params.CR_strategy = rqs.CRStrategy.NeverCheckpoint
+        wl = rqs.ResourceEstimator(history)
+        sequence = wl.compute_request_sequence()
+        self.assertTrue(sequence[0][0] >= 1800)
+        self.assertTrue(all(sequence[i][0] - sequence[i-1][0] >= 1800
+                            for i in range(1, len(sequence))))
+        params = rqs.ResourceParameters()
+        params.request_increment_limit = 1800
+        params.CR_strategy = rqs.CRStrategy.AlwaysCheckpoint
+        wl = rqs.ResourceEstimator(history)
+        sequence = wl.compute_request_sequence()
+        # since it's all checkpoint every reservation represents the increment
+        self.assertTrue(all(i[0] >= 1800 for i in sequence))
+
 # test the sequence extraction
 class TestSequence(unittest.TestCase):
     def test_failed_init(self):
