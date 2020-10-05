@@ -584,6 +584,37 @@ class DefaultRequests():
             avg += self._sumF[j + 1]
         return avg
 
+    def compute_request_sequence(self):
+        if len(self._request_sequence) > 0:
+            return self._request_sequence
+        ic = -1
+        il = -1
+        th = self.threshold
+        idx = self._E_index[(ic, il)][th]
+        E_val = self._E[(ic, il)][idx]
+        already_compute = 0
+        self._index_sequence = []
+        while E_val[1] < len(self.discret_values) - 2:
+            self._request_sequence.append(
+                (self.discret_values[E_val[1]] - already_compute, E_val[2]))
+            self._index_sequence.append(E_val[1])
+            ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
+            il = E_val[1] + 1
+            if self.th_strategy == LimitStrategy.AverageBased:
+                th = th - int(round(
+                    self._sumF[il + 1] * self.th_precision))
+            else:
+                th -= 1
+            if E_val[2] == 1:
+                already_compute = self.discret_values[E_val[1]]
+            idx = self._E_index[(ic, il)][th]
+            E_val = self._E[(ic, il)][idx]
+
+        self._request_sequence.append(
+            (self.discret_values[E_val[1]] - already_compute, 0))
+        self._index_sequence.append(E_val[1])
+        return self._request_sequence
+
 
 class RequestSequence(DefaultRequests):
     ''' Sequence that optimizes the total makespan of a job for discret
@@ -974,36 +1005,6 @@ class LimitedSequence(DefaultRequests):
         idx = self._E_index[(-1, -1)][th]
         return self._E[(-1, -1)][idx]
 
-    def compute_request_sequence(self):
-        if len(self._request_sequence) > 0:
-            return self._request_sequence
-        ic = -1
-        il = -1
-        th = self.threshold
-        idx = self._E_index[(ic, il)][th]
-        E_val = self._E[(ic, il)][idx]
-        already_compute = 0
-        self._index_sequence = []
-        while E_val[1] < len(self.discret_values) - 2:
-            self._request_sequence.append(
-                (self.discret_values[E_val[1]] - already_compute, E_val[2]))
-            self._index_sequence.append(E_val[1])
-            ic = (1 - E_val[2]) * ic + (E_val[1] + 1) * E_val[2]
-            il = E_val[1] + 1
-            if self.th_strategy == LimitStrategy.AverageBased:
-                th = th - int(round(
-                    self._sumF[il + 1] * self.th_precision))
-            else:
-                th -= 1
-            if E_val[2] == 1:
-                already_compute = self.discret_values[E_val[1]]
-            idx = self._E_index[(ic, il)][th]
-            E_val = self._E[(ic, il)][idx]
-
-        self._request_sequence.append(
-            (self.discret_values[E_val[1]] - already_compute, 0))
-        self._index_sequence.append(E_val[1])
-        return self._request_sequence
 
 # -------------
 # Classes for defining how the cost is computed

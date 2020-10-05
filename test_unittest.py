@@ -335,12 +335,12 @@ class TestCostModel(unittest.TestCase):
         wl = rqs.ResourceEstimator([5]*101)
         sequence = wl.compute_request_sequence()
         cost = wl.compute_sequence_cost(sequence, [1, 2, 3])
-        self.assertEqual(cost, 7)
+        self.assertEqual(cost[0], 7)
         cost = rqs.ClusterCosts(0, 1, 0)
         sequence = wl.compute_request_sequence(cluster_cost=cost)
         cost = wl.compute_sequence_cost(sequence, [1, 2, 3],
                                         cluster_cost=cost)
-        self.assertEqual(cost, 2)
+        self.assertEqual(cost[0], 2)
 
     def test_cost_validity(self):
         data = np.loadtxt("./examples/logs/truncnorm.in", delimiter=' ')
