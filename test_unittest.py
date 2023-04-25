@@ -11,6 +11,15 @@ def ignore_warnings(test_func):
             test_func(self, *args, **kwargs)
     return do_test
 
+class TestFailureModule(unittest.TestCase):
+    def limitsFail(self):
+        params = rqs.ResourceParameters()
+        params.request_lower_limit = -1
+        wl = rqs.ResourceEstimator([3, 4], params=params)
+        self.assertRaises(RuntimeWarning, wl.compute_request_sequence())
+        params.request_upper_limit = -1
+        wl = rqs.ResourceEstimator([3, 4], params=params)
+        self.assertRaises(RuntimeWarning, wl.compute_request_sequence())
 
 class TestEstimationParameters(unittest.TestCase):
     def test_init_default(self):
@@ -256,11 +265,13 @@ class TestLimitedSequence(unittest.TestCase):
         for i in history:
             compute = 0
             for s in sequence:
-                if i > s[0] + compute:
-                    submissions += 1
                 # if the application was checkpointed
                 if s[1] == 1:
                     compute += s[0]
+                    continue
+                # count the failed runs
+                if i > s[0] + compute:
+                    submissions += 1
             # add the successful run
             submissions += 1
         return submissions / len(history)
@@ -357,3 +368,6 @@ class TestCostModel(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         cost = wl.compute_sequence_cost(sequence, data)
         self.assertTrue(cost >= cost_opt) 
+
+if __name__ == '__main__':
+    unittest.main()

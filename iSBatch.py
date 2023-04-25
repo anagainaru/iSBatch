@@ -105,8 +105,8 @@ class ResourceParameters():
     resource_discretization = -1
     verbose = False
     CR_strategy = CRStrategy.NeverCheckpoint
-    request_upper_limit = -1
-    request_lower_limit = -1
+    request_upper_limit = None
+    request_lower_limit = None
     request_increment_limit = 0
     submissions_limit = None
     submissions_limit_strategy = LimitStrategy.ThresholdBased
@@ -230,9 +230,16 @@ class ResourceEstimator():
 
     def __get_limits(self):
         limits = []
-        if self.params.request_lower_limit != -1:
+        warnings.simplefilter("error", category=RuntimeWarning)
+        if self.params.request_lower_limit != None:
+            if self.params.request_lower_limit < 0:
+                warnings.warn("Error ! Sequence limits cannot be negative",
+                              RuntimeWarning, stacklevel=2)
             limits.append(self.params.request_lower_limit)
-        if self.params.request_upper_limit != -1:
+        if self.params.request_upper_limit != None:
+            if self.params.request_upper_limit < 0:
+                warnings.warn("Error ! Sequence limits cannot be negative",
+                              RuntimeWarning, stacklevel=2)
             # if only the upper limit is set
             if len(limits) == 0:
                 # add the min data as the lower limit
@@ -271,10 +278,10 @@ class ResourceEstimator():
             data = self.discrete_data
             cdf = self.cdf
         idx = range(len(data))
-        if self.params.request_upper_limit != -1:
+        if self.params.request_upper_limit != None:
             idx = [i for i in idx if data[i] <=\
                    self.params.request_upper_limit]
-        if self.params.request_lower_limit != -1:
+        if self.params.request_lower_limit != None:
             idx = [i for i in idx if data[i] >=\
                    self.params.request_lower_limit]
         discrete_data = [data[i] for i in idx]
