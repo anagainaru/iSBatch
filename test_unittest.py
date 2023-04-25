@@ -11,6 +11,15 @@ def ignore_warnings(test_func):
             test_func(self, *args, **kwargs)
     return do_test
 
+class TestFailureModule(unittest.TestCase):
+    def limitsFail(self):
+        params = rqs.ResourceParameters()
+        params.request_lower_limit = -1
+        wl = rqs.ResourceEstimator([3, 4], params=params)
+        self.assertRaises(RuntimeWarning, wl.compute_request_sequence())
+        params.request_upper_limit = -1
+        wl = rqs.ResourceEstimator([3, 4], params=params)
+        self.assertRaises(RuntimeWarning, wl.compute_request_sequence())
 
 class TestEstimationParameters(unittest.TestCase):
     def test_init_default(self):
