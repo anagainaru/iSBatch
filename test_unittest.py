@@ -256,11 +256,13 @@ class TestLimitedSequence(unittest.TestCase):
         for i in history:
             compute = 0
             for s in sequence:
-                if i > s[0] + compute:
-                    submissions += 1
                 # if the application was checkpointed
                 if s[1] == 1:
                     compute += s[0]
+                    continue
+                # count the failed runs
+                if i > s[0] + compute:
+                    submissions += 1
             # add the successful run
             submissions += 1
         return submissions / len(history)
@@ -357,3 +359,6 @@ class TestCostModel(unittest.TestCase):
         sequence = wl.compute_request_sequence()
         cost = wl.compute_sequence_cost(sequence, data)
         self.assertTrue(cost >= cost_opt) 
+
+if __name__ == '__main__':
+    unittest.main()
